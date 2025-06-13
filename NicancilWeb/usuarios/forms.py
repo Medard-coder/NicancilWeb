@@ -14,5 +14,5 @@ class RegistroForm(UserCreationForm):
         fields = ['email', 'rol', 'password1', 'password2']
         widgets = {
             'email': forms.EmailInput(attrs={"class": "form-control"}),
-            'rol': forms.Selec(attrs={"class": "form-control"}),
+            'rol': forms.Select(attrs={"class": "form-control"}),
         }

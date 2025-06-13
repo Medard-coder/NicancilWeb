@@ -1,0 +1,25 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}Panel de Administrador{% endblock %}
+
+{% block navbar %}
+    <div class="collapse navbar-collapse">
+        <ul class="navbar-nav me-auto">
+            <li class="nav-item"><a class="nav-link" href="#">Inventario</a></li>
+            <li class="nav-item"><a class="nav-link" href="#">Agregar Prenda</a></li>
+            <li class="nav-item"><a class="nav-link" href="#">Editar Prenda</a></li>
+            <li class="nav-item"><a class="nav-link" href="#">Eliminar Prenda</a></li>
+            <li class="nav-item"><a class="nav-link" href="#">Agendar Cita</a></li>
+            <li class="nav-item"><a class="nav-link" href="#">Facturar Renta</a></li>
+            <li class="nav-item"><a class="nav-link" href="#">Reportes</a></li>
+        </ul>
+        <span class="navbar-text">
+            Administrador | <a href="{% url 'logout' %}" class="text-decoration-none">Cerrar sesión</a>
+        </span>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">Bienvenido, Administrador</h2>
+    <p>Desde este panel puedes administrar prendas, citas, facturación y reportes.</p>
+{% endblock %}

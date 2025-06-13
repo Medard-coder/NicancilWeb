@@ -1,0 +1,20 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}Panel de Empleado{% endblock %}
+
+{% block navbar %}
+    <div class="collapse navbar-collapse">
+        <ul class="navbar-nav me-auto">
+            <li class="nav-item"><a class="nav-link" href="#">Inventario</a></li>
+            <li class="nav-item"><a class="nav-link" href="#">Facturar Renta</a></li>
+        </ul>
+        <span class="navbar-text">
+            Empleado | <a href="{% url 'logout' %}" class="text-decoration-none">Cerrar sesión</a>
+        </span>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">Bienvenido, Empleado</h2>
+    <p>Desde este panel puedes consultar el inventario y facturar rentas.</p>
+{% endblock %}
