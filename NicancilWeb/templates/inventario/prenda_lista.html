@@ -1,0 +1,39 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %} Prendas {% endblock %}
+
+{% block content %}
+    <h2 class="mb-4"> Prendas </h2>
+
+    {% if user.rol == 'admin' %}
+    <div class="mb-4">
+        <a href="{% url 'nueva_prenda' %}" class="btn btn-primary">Añadir una nueva prenda</a>
+        <a href="{% url 'inventario' %}" class="btn btn-secondary">Ver inventario</a>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        {% for prenda in prendas %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    {% if prenda.imagen %}
+                        <img src="{{ prenda.imagen.url }}" class="card-img-top" alt="{{ prenda.nombre }}">
+                    {% else %}
+                        <div class="card-img-top bg-light text-center py-5">Sin imagen</div>
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ prenda.nombre }}</h5>
+                        <p class="card-text"><span class="badge bg-info">{{ prenda.get_tipo_display }}</span></p>
+                        <p class="card-text">{{ prenda.descripcion|truncatechars:100 }}</p>
+                        <p class="card-text"><strong>${{ prenda.precio }}</strong></p>
+                        <a href="{% url 'prenda_detalle' prenda.pk %}" class="btn btn-primary">Ver detalles</a>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <p>No hay prendas disponibles.</p>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}

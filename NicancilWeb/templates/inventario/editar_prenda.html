@@ -1,0 +1,42 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}Editar prenda{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">Editar prenda</h2>
+    
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="mb-3">
+            <label for="{{ form.nombre.id_for_label }}" class="form-label">Nombre</label>
+            {{ form.nombre }}
+        </div>
+        
+        <div class="mb-3">
+            <label for="{{ form.descripcion.id_for_label }}" class="form-label">Descripción</label>
+            {{ form.descripcion }}
+        </div>
+        
+        <div class="mb-3">
+            <label for="{{ form.precio.id_for_label }}" class="form-label">Precio</label>
+            {{ form.precio }}
+        </div>
+        
+        <div class="mb-3">
+            <label for="{{ form.tipo.id_for_label }}" class="form-label">Tipo de prenda</label>
+            {{ form.tipo }}
+        </div>
+        
+        <div class="mb-3">
+            <label for="{{ form.imagen.id_for_label }}" class="form-label">Imagen</label>
+            {{ form.imagen }}
+            {% if prenda.imagen %}
+                <p class="mt-2">Imagen actual: <a href="{{ prenda.imagen.url }}" target="_blank">Ver imagen</a></p>
+            {% endif %}
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+        <a href="{% url 'prenda_lista' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+{% endblock %}

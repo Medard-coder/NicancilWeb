@@ -1,0 +1,31 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}{{ prenda.nombre }}{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-6">
+            {% if prenda.imagen %}
+                <img src="{{ prenda.imagen.url }}" class="img-fluid rounded" alt="{{ prenda.nombre }}">
+            {% else %}
+                <div class="bg-light text-center py-5 rounded">Sin imagen</div>
+            {% endif %}
+        </div>
+        <div class="col-md-6">
+            <h2>{{ prenda.nombre }}</h2>
+            <p><span class="badge bg-info">{{ prenda.get_tipo_display }}</span></p>
+            <p class="lead">${{ prenda.precio }}</p>
+            <p>{{ prenda.descripcion }}</p>
+            <p><small class="text-muted">Fecha de creación: {{ prenda.fecha_creacion|date:"d/m/Y" }}</small></p>
+            
+            {% if user.rol == 'admin' %}
+            <div class="mt-4">
+                <a href="{% url 'editar_prenda' prenda.pk %}" class="btn btn-warning">Editar</a>
+                <a href="{% url 'eliminar_prenda' prenda.pk %}" class="btn btn-danger">Eliminar</a>
+            </div>
+            {% endif %}
+            
+            <a href="{% url 'prenda_lista' %}" class="btn btn-secondary mt-3">Volver a la lista</a>
+        </div>
+    </div>
+{% endblock %}

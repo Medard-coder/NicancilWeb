@@ -1,0 +1,17 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}Eliminar prenda{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">Eliminar prenda</h2>
+    
+    <div class="alert alert-danger">
+        <p>¿Estás seguro de que deseas eliminar esta prenda "{{ prenda.nombre }}"?</p>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Eliminar</button>
+        <a href="{% url 'prenda_detalle' prenda.pk %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+{% endblock %}

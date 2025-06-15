@@ -38,8 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'trajes',
     'usuarios',
+    'inventario',
 ]
 
 AUTH_USER_MODEL = 'usuarios.Usuario'
@@ -102,6 +102,10 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+#Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
 # Internationalization

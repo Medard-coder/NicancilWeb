@@ -1,0 +1,48 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}Inventario{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">Inventario</h2>
+    
+    {% if user.rol == 'admin' %}
+    <div class="mb-4">
+        <a href="{% url 'nueva_prenda' %}" class="btn btn-primary">Añadir nueva prenda</a>
+    </div>
+    {% endif %}
+    
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Tipo</th>
+                    <th>Precio</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for prenda in prendas %}
+                <tr>
+                    <td>{{ prenda.id }}</td>
+                    <td>{{ prenda.nombre }}</td>
+                    <td>{{ prenda.get_tipo_display }}</td>
+                    <td>${{ prenda.precio }}</td>
+                    <td>
+                        <a href="{% url 'prenda_detalle' prenda.pk %}" class="btn btn-sm btn-info">Ver</a>
+                        {% if user.rol == 'admin' %}
+                        <a href="{% url 'editar_prenda' prenda.pk %}" class="btn btn-sm btn-warning">Editar</a>
+                        <a href="{% url 'eliminar_prenda' prenda.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">No hay prendas en el inventario.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
