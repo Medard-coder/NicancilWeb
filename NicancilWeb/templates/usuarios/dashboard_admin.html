@@ -7,9 +7,6 @@
         <ul class="navbar-nav me-auto">
             <li class="nav-item"><a class="nav-link" href="{% url 'inventario' %}">Inventario</a></li>
             <li class="nav-item"><a class="nav-link" href="{% url 'nueva_prenda' %}">Agregar Prenda</a></li>
-            <li class="nav-item"><a class="nav-link" href="{% url 'prenda_lista' %}">Prendas</a></li>
-            <li class="nav-item"><a class="nav-link" href="#">Editar Prenda</a></li>
-            <li class="nav-item"><a class="nav-link" href="#">Eliminar Prenda</a></li>
             <li class="nav-item"><a class="nav-link" href="#">Agendar Cita</a></li>
             <li class="nav-item"><a class="nav-link" href="#">Facturar Renta</a></li>
             <li class="nav-item"><a class="nav-link" href="#">Reportes</a></li>
@@ -23,4 +20,37 @@
 {% block content %}
     <h2 class="mb-4">Bienvenido, Administrador</h2>
     <p>Desde este panel puedes administrar prendas, citas, facturación y reportes.</p>
+    
+    <div class="mb-4">
+        <a href="{% url 'nueva_prenda' %}" class="btn btn-primary">Añadir una nueva prenda</a>
+        <a href="{% url 'inventario' %}" class="btn btn-secondary">Ver inventario</a>
+    </div>
+
+    <h3 class="mb-3">Prendas disponibles</h3>
+    <div class="row">
+        {% for prenda in prendas %}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    {% if prenda.imagen %}
+                        <img src="{{ prenda.imagen.url }}" class="card-img-top" alt="{{ prenda.nombre }}">
+                    {% else %}
+                        <div class="card-img-top bg-light text-center py-5">Sin imagen</div>
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ prenda.nombre }}</h5>
+                        <p class="card-text"><span class="badge bg-info">{{ prenda.get_tipo_display }}</span></p>
+                        <p class="card-text">{{ prenda.descripcion|truncatechars:100 }}</p>
+                        <p class="card-text"><strong>${{ prenda.precio }}</strong></p>
+                        <a href="{% url 'prenda_detalle' prenda.pk %}" class="btn btn-primary">Ver detalles</a>
+                        <a href="{% url 'editar_prenda' prenda.pk %}" class="btn btn-warning">Editar</a>
+                        <a href="{% url 'eliminar_prenda' prenda.pk %}" class="btn btn-danger">Eliminar</a>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <p>No hay prendas disponibles.</p>
+            </div>
+        {% endfor %}
+    </div>
 {% endblock %}

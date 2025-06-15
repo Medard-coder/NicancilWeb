@@ -25,9 +25,13 @@ def logout_view(request):
 # Vista del Dashboard para redireccionar según el rol
 @login_required
 def dashboard(request):
+    # Obtener todas las prendas para mostrarlas en el dashboard
+    from inventario.models import Prenda
+    prendas = Prenda.objects.all()
+    
     if request.user.rol == 'admin':
-        return render(request, "usuarios/dashboard_admin.html")
+        return render(request, "usuarios/dashboard_admin.html", {'prendas': prendas})
     elif request.user.rol == 'emp':
-        return render(request, "usuarios/dashboard_empleado.html")
+        return render(request, "usuarios/dashboard_empleado.html", {'prendas': prendas})
     else:
         return redirect('logout')
