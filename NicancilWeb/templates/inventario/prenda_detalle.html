@@ -13,10 +13,27 @@
         </div>
         <div class="col-md-6">
             <h2>{{ prenda.nombre }}</h2>
-            <p><span class="badge bg-info">{{ prenda.get_tipo_display }}</span></p>
+            <p>
+                <span class="badge bg-info">{{ prenda.get_tipo_display }}</span>
+                <span class="badge bg-primary">{{ prenda.get_genero_display }}</span>
+                <span class="badge {% if prenda.estatus == 'disponible' %}bg-success{% elif prenda.estatus == 'apartado' %}bg-warning{% else %}bg-danger{% endif %}">
+                    {{ prenda.get_estatus_display }}
+                </span>
+            </p>
             <p class="lead">${{ prenda.precio }}</p>
             <p>{{ prenda.descripcion }}</p>
-            <p><small class="text-muted">Fecha de creación: {{ prenda.fecha_creacion|date:"d/m/Y" }}</small></p>
+            
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <p><strong>Color:</strong> {{ prenda.color|default:"No especificado" }}</p>
+                    <p><strong>Tallas:</strong> {{ prenda.tallas|default:"No especificado" }}</p>
+                    <p><strong>Ubicación:</strong> {{ prenda.lugar|default:"No especificado" }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Cantidad:</strong> {{ prenda.cantidad }}</p>
+                    <p><strong>Fecha de agregado:</strong> {{ prenda.fecha_creacion|date:"d/m/Y" }}</p>
+                </div>
+            </div>
             
             {% if user.rol == 'admin' %}
             <div class="mt-4">

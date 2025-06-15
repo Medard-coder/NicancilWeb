@@ -8,32 +8,68 @@
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         
-        <div class="mb-3">
-            <label for="{{ form.nombre.id_for_label }}" class="form-label">Nombre</label>
-            {{ form.nombre }}
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="{{ form.nombre.id_for_label }}" class="form-label">Nombre</label>
+                    {{ form.nombre }}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.precio.id_for_label }}" class="form-label">Precio</label>
+                    {{ form.precio }}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.tipo.id_for_label }}" class="form-label">Tipo de prenda</label>
+                    {{ form.tipo }}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.color.id_for_label }}" class="form-label">Color</label>
+                    {{ form.color }}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.tallas.id_for_label }}" class="form-label">Tallas</label>
+                    {{ form.tallas }}
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="{{ form.genero.id_for_label }}" class="form-label">Género</label>
+                    {{ form.genero }}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.estatus.id_for_label }}" class="form-label">Estatus</label>
+                    {{ form.estatus }}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.lugar.id_for_label }}" class="form-label">Ubicación</label>
+                    {{ form.lugar }}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.cantidad.id_for_label }}" class="form-label">Cantidad</label>
+                    {{ form.cantidad }}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.imagen.id_for_label }}" class="form-label">Imagen</label>
+                    {{ form.imagen }}
+                    {% if prenda.imagen %}
+                        <p class="mt-2">Imagen actual: <a href="{{ prenda.imagen.url }}" target="_blank">Ver imagen</a></p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
         
         <div class="mb-3">
             <label for="{{ form.descripcion.id_for_label }}" class="form-label">Descripción</label>
             {{ form.descripcion }}
-        </div>
-        
-        <div class="mb-3">
-            <label for="{{ form.precio.id_for_label }}" class="form-label">Precio</label>
-            {{ form.precio }}
-        </div>
-        
-        <div class="mb-3">
-            <label for="{{ form.tipo.id_for_label }}" class="form-label">Tipo de prenda</label>
-            {{ form.tipo }}
-        </div>
-        
-        <div class="mb-3">
-            <label for="{{ form.imagen.id_for_label }}" class="form-label">Imagen</label>
-            {{ form.imagen }}
-            {% if prenda.imagen %}
-                <p class="mt-2">Imagen actual: <a href="{{ prenda.imagen.url }}" target="_blank">Ver imagen</a></p>
-            {% endif %}
         </div>
         
         <button type="submit" class="btn btn-primary">Guardar cambios</button>

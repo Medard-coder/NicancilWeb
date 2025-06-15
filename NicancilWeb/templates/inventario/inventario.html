@@ -18,6 +18,10 @@
                     <th>ID</th>
                     <th>Nombre</th>
                     <th>Tipo</th>
+                    <th>Color</th>
+                    <th>Tallas</th>
+                    <th>Estatus</th>
+                    <th>Cantidad</th>
                     <th>Precio</th>
                     <th>Acciones</th>
                 </tr>
@@ -28,12 +32,20 @@
                     <td>{{ prenda.id }}</td>
                     <td>{{ prenda.nombre }}</td>
                     <td>{{ prenda.get_tipo_display }}</td>
+                    <td>{{ prenda.color|default:"-" }}</td>
+                    <td>{{ prenda.tallas|default:"-" }}</td>
+                    <td>
+                        <span class="badge {% if prenda.estatus == 'disponible' %}bg-success{% elif prenda.estatus == 'apartado' %}bg-warning{% else %}bg-danger{% endif %}">
+                            {{ prenda.get_estatus_display }}
+                        </span>
+                    </td>
+                    <td>{{ prenda.cantidad }}</td>
                     <td>${{ prenda.precio }}</td>
                     <td>
                         <a href="{% url 'prenda_detalle' prenda.pk %}" class="btn btn-sm btn-info">Ver</a>
                         {% if user.rol == 'admin' %}
-                        <a href="{% url 'editar_prenda' prenda.pk %}" class="btn btn-sm btn-warning">Editar</a>
-                        <a href="{% url 'eliminar_prenda' prenda.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+                            <a href="{% url 'editar_prenda' prenda.pk %}" class="btn btn-sm btn-warning">Editar</a>
+                            <a href="{% url 'eliminar_prenda' prenda.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
                         {% endif %}
                     </td>
                 </tr>
