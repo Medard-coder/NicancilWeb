@@ -4,6 +4,79 @@
 
 {% block content %}
     <h2 class="mb-4">Inventario</h2>
+
+    <!-- Barra de búsqueda y filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" action="">
+                <div class="row g-3">
+                    <div class="col-md-2">
+                        <input type="text" name="busqueda" class="form-control" placeholder="Buscar por nombre..." value="{{ request.GET.busqueda|default:'' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <select name="tipo" class="form-select">
+                            <option value="">Tipo de prenda</option>
+                            {% for tipo_id, tipo_nombre in tipos_prenda %}
+                                <option value="{{ tipo_id }}" {% if request.GET.tipo == tipo_id %}selected{% endif %}>{{ tipo_nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select name="color" class="form-select">
+                            <option value="">Color</option>
+                            {% for color in colores %}
+                                <option value="{{ color }}" {% if request.GET.color == color %}selected{% endif %}>{{ color }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select name="genero" class="form-select">
+                            <option value="">Género</option>
+                            {% for genero_id, genero_nombre in generos %}
+                                <option value="{{ genero_id }}" {% if request.GET.genero == genero_id %}selected{% endif %}>{{ genero_nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select name="estatus" class="form-select">
+                            <option value="">Estatus</option>
+                            {% for estatus_id, estatus_nombre in estatus_opciones %}
+                                <option value="{{ estatus_id }}" {% if request.GET.estatus == estatus_id %}selected{% endif %}>{{ estatus_nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-2">
+                        <select name="talla" class="form-select">
+                            <option value="">Talla</option>
+                            {% for talla in tallas %}
+                                <option value="{{ talla }}" {% if request.GET.talla == talla %}selected{% endif %}>{{ talla }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="input-group">
+                            <span class="input-group-text">Precio desde</span>
+                            <input type="number" name="precio_min" class="form-control form-control-lg" style="font-size: 1rem;" value="{{ request.GET.precio_min|default:'' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="input-group">
+                            <span class="input-group-text">Precio hasta</span>
+                            <input type="number" name="precio_max" class="form-control form-control-lg" style="font-size: 1rem;" value="{{ request.GET.precio_max|default:'' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-2 ms-auto">
+                        <a href="{% url 'inventario' %}" class="btn btn-outline-secondary w-100">Limpiar filtros</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
     
     {% if user.rol == 'admin' %}
     <div class="mb-4">
@@ -51,7 +124,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5">No hay prendas en el inventario.</td>
+                    <td colspan="9">No hay prendas en el inventario.</td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -71,4 +71,60 @@ def eliminar_prenda(request, pk):
 @login_required
 def inventario(request):
     prendas = Prenda.objects.all()
-    return render(request, 'inventario/inventario.html', {'prendas': prendas})
+    
+    #Filtros de busqueda
+    busqueda=request.GET.get('busqueda', '')
+    tipo=request.GET.get('tipo', '')
+    color=request.GET.get('color', '')
+    genero=request.GET.get('genero', '')
+    estatus=request.GET.get('estatus', '')
+    talla=request.GET.get('talla', '')
+    precio_min=request.GET.get('precio_min', '')
+    precio_max=request.GET.get('precio_max', '')
+    
+    if busqueda:
+        prendas=prendas.filter(nombre__icontains=busqueda)
+    
+    if tipo:
+        prendas=prendas.filter(tipo=tipo)
+        
+    if color:
+        prendas=prendas.filter(color=color)
+        
+    if genero:
+        prendas=prendas.filter(genero=genero)
+    
+    if estatus:
+        prendas=prendas.filter(estatus=estatus)
+        
+    if talla:
+        prendas=prendas.filter(tallas__icontains=talla)
+        
+    if precio_min:
+        try:
+            prendas=prendas.filter(precio__gte=float(precio_min))
+        except ValueError:
+            pass
+        
+    if precio_max:
+        try:
+            prendas=prendas.filter(precio__lte=float(precio_max))
+        except ValueError:
+            pass
+        
+    #Obtener opciones de filtros
+    tipos_prenda=Prenda.TIPOS
+    colores=Prenda.objects.values_list('color', flat=True).distinct()
+    generos=Prenda.GENEROS
+    estatus_opciones=Prenda.ESTATUS
+    
+    context={
+        'prendas': prendas,
+        'tipos_prenda': tipos_prenda,
+        'colores': colores,
+        'generos': generos,
+        'estatus_opciones': estatus_opciones,
+        'tallas': Prenda.objects.values_list('tallas', flat=True).distinct(),
+    }
+    
+    return render(request, 'inventario/inventario.html', context)
