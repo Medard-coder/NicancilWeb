@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nicancil - Registro</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/registro.css' %}">
+</head>
+<body>
+    <div class="login-container">
+        <!-- Header -->
+        <div class="login-header">
+            <div class="logo">Nicancil</div>
+            <div class="subtitle">Registro de Usuario</div>
+        </div>
+
+        <!-- Formulario de Registro -->
+        <div class="login-form">
+            <form method="post" id="registroForm">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="error-message show">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+                
+                {% for field in form %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                    <div class="error-message show">
+                        {{ field.errors }}
+                    </div>
+                    {% endif %}
+                    {% if field.help_text %}
+                    <span class="helptext">{{ field.help_text }}</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                
+                <button type="submit" class="btn-primary" id="registroBtn">
+                    Registrarse
+                </button>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    Procesando registro...
+                </div>
+            </form>
+            
+            <div class="login-link">
+                <a href="{% url 'login' %}">¿Ya tienes una cuenta? Inicia sesión</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const registroForm = document.getElementById('registroForm');
+        const registroBtn = document.getElementById('registroBtn');
+        const loading = document.getElementById('loading');
+
+        // Event listener para el formulario
+        registroForm.addEventListener('submit', function(e) {
+            registroBtn.disabled = true;
+            loading.style.display = 'block';
+            // No prevenimos el envío del formulario para permitir que Django lo procese
+        });
+    </script>
+</body>
+</html>
