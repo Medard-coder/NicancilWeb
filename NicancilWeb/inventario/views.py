@@ -1,15 +1,18 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.utils.html import escape
 from .models import Prenda
 from .forms import PrendaForm
 
 # Vista para listar prendas
+@login_required
 def prenda_lista(request):
     prendas = Prenda.objects.all()
     return render(request, 'inventario/prenda_lista.html', {'prendas': prendas})
 
 # Vista para ver detalle de una prenda
+@login_required
 def prenda_detalle(request, pk):
     prenda = get_object_or_404(Prenda, pk=pk)
     return render(request, 'inventario/prenda_detalle.html', {'prenda': prenda})
@@ -73,14 +76,14 @@ def inventario(request):
     prendas = Prenda.objects.all()
     
     #Filtros de busqueda
-    busqueda=request.GET.get('busqueda', '')
-    tipo=request.GET.get('tipo', '')
-    color=request.GET.get('color', '')
-    genero=request.GET.get('genero', '')
-    estatus=request.GET.get('estatus', '')
-    talla=request.GET.get('talla', '')
-    precio_min=request.GET.get('precio_min', '')
-    precio_max=request.GET.get('precio_max', '')
+    busqueda=escape(request.GET.get('busqueda', '').strip())
+    tipo=escape(request.GET.get('tipo', '').strip())
+    color=escape(request.GET.get('color', '').strip())
+    genero=escape(request.GET.get('genero', '').strip())
+    estatus=escape(request.GET.get('estatus', '').strip())
+    talla=escape(request.GET.get('talla', '').strip())
+    precio_min=request.GET.get('precio_min', '').strip()
+    precio_max=request.GET.get('precio_max', '').strip()
     
     if busqueda:
         prendas=prendas.filter(nombre__icontains=busqueda)
@@ -102,14 +105,18 @@ def inventario(request):
         
     if precio_min:
         try:
-            prendas=prendas.filter(precio__gte=float(precio_min))
-        except ValueError:
+            precio_min_val = float(precio_min)
+            if not (precio_min_val != precio_min_val):  # Check for NaN
+                prendas=prendas.filter(precio__gte=precio_min_val)
+        except (ValueError, TypeError):
             pass
         
     if precio_max:
         try:
-            prendas=prendas.filter(precio__lte=float(precio_max))
-        except ValueError:
+            precio_max_val = float(precio_max)
+            if not (precio_max_val != precio_max_val):  # Check for NaN
+                prendas=prendas.filter(precio__lte=precio_max_val)
+        except (ValueError, TypeError):
             pass
         
     #Obtener opciones de filtros
