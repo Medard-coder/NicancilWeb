@@ -2,8 +2,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils.html import escape
-from .models import Prenda
-from .forms import PrendaForm
+from .models import Prenda, PrendaVariante
+from .forms import PrendaForm, PrendaVarianteForm
 
 # Vista para listar prendas
 @login_required
@@ -135,3 +135,47 @@ def inventario(request):
     }
     
     return render(request, 'inventario/inventario.html', context)
+
+#Vista para gestionar variantes de una prenda
+@login_required
+def gestionar_variantes(request, pk):
+    if request.user.rol != 'admin':
+        messages.error(request, 'No tienes permiso para gestionar variantes.')
+        return redirect('prenda_detalle', pk=pk)
+    
+    prenda = get_object_or_404(Prenda, pk=pk)
+    
+    if request.method == 'POST':
+        form = PrendaVarianteForm(request.POST, request.FILES)
+        if form.is_valid():
+            variante = form.save(commit=False)
+            variante.prenda = prenda
+            variante.save()
+            messages.success(request, 'Variante agregada correctamente.')
+            return redirect('gestionar_variantes', pk=pk)
+    else:
+        form = PrendaVarianteForm()
+    
+    variantes = prenda.variantes.all()
+    return render(request, 'inventario/gestionar_variantes.html', {
+        'prenda': prenda,
+        'variantes': variantes,
+        'form': form
+    })
+
+#Vista para eliminar variante
+@login_required
+def eliminar_variante(request, pk):
+    if request.user.rol != 'admin':
+        messages.error(request, 'No tienes permiso para eliminar variantes.')
+        return redirect('prenda_lista')
+    
+    variante = get_object_or_404(PrendaVariante, pk=pk)
+    prenda_pk = variante.prenda.pk
+    
+    if request.method == 'POST':
+        variante.delete()
+        messages.success(request, 'Variante eliminada correctamente.')
+        return redirect('gestionar_variantes', pk=prenda_pk)
+    
+    return render(request, 'inventario/confirmar_eliminar_variante.html', {'variante': variante})

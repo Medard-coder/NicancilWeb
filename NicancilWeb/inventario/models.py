@@ -38,3 +38,17 @@ class Prenda(models.Model):
 
     def get_absolute_url(self):
         return reverse('prenda_detalle', args=[str(self.id)])
+
+class PrendaVariante(models.Model):
+    prenda = models.ForeignKey(Prenda, on_delete=models.CASCADE, related_name='variantes')
+    color = models.CharField(max_length=50)
+    talla = models.CharField(max_length=20)
+    cantidad = models.PositiveIntegerField(default=1)
+    estatus = models.CharField(max_length=20, choices=Prenda.ESTATUS, default='disponible')
+    imagen = models.ImageField(upload_to='variantes/', null=True, blank=True)
+
+    class Meta:
+        unique_together = ('prenda', 'color', 'talla')
+
+    def __str__(self):
+        return f"{self.prenda.nombre} - {self.color} - {self.talla}"

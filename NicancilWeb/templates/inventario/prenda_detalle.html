@@ -38,6 +38,7 @@
             {% if user.rol == 'admin' %}
             <div class="mt-4">
                 <a href="{% url 'editar_prenda' prenda.pk %}" class="btn btn-warning">Editar</a>
+                <a href="{% url 'gestionar_variantes' prenda.pk %}" class="btn btn-info">Gestionar Variantes</a>
                 <a href="{% url 'eliminar_prenda' prenda.pk %}" class="btn btn-danger">Eliminar</a>
             </div>
             {% endif %}
@@ -45,4 +46,60 @@
             <a href="{% url 'prenda_lista' %}" class="btn btn-secondary mt-3">Volver a la lista</a>
         </div>
     </div>
+    
+    <!-- Sección de Variantes -->
+    {% if prenda.variantes.exists %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <h4>Variantes Disponibles</h4>
+            <div class="accordion" id="variantesAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingVariantes">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseVariantes" aria-expanded="false" aria-controls="collapseVariantes">
+                            Ver Variantes ({{ prenda.variantes.count }})
+                        </button>
+                    </h2>
+                    <div id="collapseVariantes" class="accordion-collapse collapse" aria-labelledby="headingVariantes" data-bs-parent="#variantesAccordion">
+                        <div class="accordion-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Color</th>
+                                            <th>Talla</th>
+                                            <th>Cantidad</th>
+                                            <th>Estatus</th>
+                                            <th>Imagen</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for variante in prenda.variantes.all %}
+                                        <tr>
+                                            <td>{{ variante.color }}</td>
+                                            <td>{{ variante.talla }}</td>
+                                            <td>{{ variante.cantidad }}</td>
+                                            <td>
+                                                <span class="badge {% if variante.estatus == 'disponible' %}bg-success{% elif variante.estatus == 'apartado' %}bg-warning{% else %}bg-danger{% endif %}">
+                                                    {{ variante.get_estatus_display }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if variante.imagen %}
+                                                    <img src="{{ variante.imagen.url }}" alt="{{ variante.color }} - {{ variante.talla }}" style="width: 50px; height: 50px; object-fit: cover;" class="rounded">
+                                                {% else %}
+                                                    Sin imagen
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 {% endblock %}
