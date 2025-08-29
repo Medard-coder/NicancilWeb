@@ -102,4 +102,40 @@
         </div>
     </div>
     {% endif %}
+
+    <!-- Sección de Unidades Individuales -->
+    {% if unidades %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <h4>Unidades Individuales ({{ unidades.count }})</h4>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Número de Serie</th>
+                            <th>Variante</th>
+                            <th>Estatus</th>
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for unidad in unidades %}
+                        <tr>
+                            <td><strong>{{ unidad.numero_serie }}</strong></td>
+                            <td>{{ unidad.variante.color }} - {{ unidad.variante.talla }}</td>
+                            <td>
+                                <span class="badge bg-{% if unidad.estatus == 'disponible' %}success{% elif unidad.estatus == 'apartado' %}warning{% else %}danger{% endif %}">
+                                    {{ unidad.get_estatus_display }}
+                                </span>
+                            </td>
+                            <td>{{ unidad.fecha_creacion|date:"d/m/Y" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
 {% endblock %}

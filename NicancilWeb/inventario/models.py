@@ -52,3 +52,49 @@ class PrendaVariante(models.Model):
 
     def __str__(self):
         return f"{self.prenda.nombre} - {self.color} - {self.talla}"
+    
+    def unidades_disponibles(self):
+        return self.unidades.filter(estatus='disponible').count()
+    
+    def total_unidades(self):
+        return self.unidades.count()
+    
+class PrendaUnidad(models.Model):
+    variante=models.ForeignKey(PrendaVariante, on_delete=models.CASCADE, related_name='unidades' )
+    numero_serie=models.CharField(max_length=20, unique=True)
+    estatus=models.CharField(max_length=20, choices=Prenda.ESTATUS, default='disponible')
+    fecha_creacion=models.DateTimeField(auto_now_add=True)
+    notas=models.TextField(blank=True, help_text="Notas adicionales sobre la unidad")
+    
+    class Meta:
+        verbose_name="Unidad de Prenda"
+        verbose_name_plural="Unidades de Prenda"
+        ordering=['numero_serie']
+    
+    def __str__(self):
+        return f"{self.variante} #{self.numero_serie}"
+    
+    def save(self, *args, **kwargs):
+        if not self.numero_serie:
+            #Generar numero de serie automatico
+            variante_prefix=f"{self.variante.prenda.id}-{self.variante.id}"
+            count=PrendaUnidad.objects.filter(variante=self.variante).count()
+            self.numero_serie=f"{variante_prefix}-{count+1:03d}"
+        super().save(*args, **kwargs)
+        
+def crear_unidades_automaticamente(sender, instantce, created, **kwargs):
+    if created:
+        #Crear unidades para cada variante automaticamente
+        for i in range(instance.cantidad):
+            PrimeraUnidad.objects.create(variante=instance)
+            
+#Conectar la señal
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=PrendaVariante)
+def crear_unidades_automaticamente(sender, instance, created, **kwargs):
+    if created:
+        #Crear unidades para cada variante automaticamente
+        for i in range(instance.cantidad):
+            PrendaUnidad.objects.create(variante=instance)

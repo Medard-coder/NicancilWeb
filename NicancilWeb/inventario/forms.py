@@ -30,3 +30,22 @@ class PrendaVarianteForm(forms.ModelForm):
             'estatus': forms.Select(attrs={'class': 'form-control'}),
             'imagen': forms.FileInput(attrs={'class': 'form-control'}),
         }
+    def __init__(self, *args, **kwargs):
+        self.prenda = kwargs.pop("prenda", None)
+        super().__init__(*args, **kwargs)
+        
+    def clean(self):
+        cleaned_data = super().clean()
+        color = cleaned_data.get("color")
+        talla = cleaned_data.get("talla")
+        
+        if self.prenda and color and talla:
+            existe=PrendaVariante.objects.filter(
+                prenda=self.prenda,
+                color=color,
+                talla=talla
+            ).exists()
+            
+            if existe:
+                raise forms.ValidationError("Ya existe una variante con el mismo color y talla.")
+            return cleaned_data

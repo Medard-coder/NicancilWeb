@@ -2,7 +2,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils.html import escape
-from .models import Prenda, PrendaVariante
+from django.db import IntegrityError
+from .models import Prenda, PrendaVariante, PrendaUnidad
 from .forms import PrendaForm, PrendaVarianteForm
 
 # Vista para listar prendas
@@ -15,7 +16,8 @@ def prenda_lista(request):
 @login_required
 def prenda_detalle(request, pk):
     prenda = get_object_or_404(Prenda, pk=pk)
-    return render(request, 'inventario/prenda_detalle.html', {'prenda': prenda})
+    unidades=PrendaUnidad.objects.filter(variante__prenda=prenda)
+    return render(request, 'inventario/prenda_detalle.html', {'prenda': prenda, 'unidades':unidades})
 
 #Vista para crear una nueva prenda (solo Administradores)
 @login_required
@@ -48,7 +50,7 @@ def editar_prenda(request, pk):
     if request.method == 'POST':
         form = PrendaForm(request.POST, request.FILES, instance=prenda)
         if form.is_valid():
-            prenda=form.save()
+            form.save()
             messages.success(request, 'La prenda se ha editado correctamente.')
             return redirect('prenda_lista')
     else:
@@ -70,54 +72,54 @@ def eliminar_prenda(request, pk):
         return redirect('prenda_lista')
     return render(request, 'inventario/confirmar_eliminar_prenda.html', {'prenda': prenda})
 
-#Vista para ver el inventario (administradores y empleados)
+def _aplicar_filtros_basicos(prendas, filtros):
+    """Aplica filtros básicos de texto a las prendas"""
+    filtros_map = {
+        'busqueda': 'nombre__icontains',
+        'tipo': 'tipo',
+        'color': 'color', 
+        'genero': 'genero',
+        'estatus': 'estatus',
+        'talla': 'tallas__icontains'
+    }
+    
+    for campo, valor in filtros.items():
+        if valor and campo in filtros_map:
+            prendas = prendas.filter(**{filtros_map[campo]: valor})
+    return prendas
+
+def _aplicar_filtro_precio(prendas, precio_str, operador):
+    """Aplica filtro de precio con validación de NaN"""
+    if not precio_str:
+        return prendas
+    
+    try:
+        precio_val = float(precio_str)
+        if precio_val == precio_val:  # Check for NaN
+            filtro = {f'precio__{operador}': precio_val}
+            return prendas.filter(**filtro)
+    except (ValueError, TypeError):
+        pass
+    return prendas
+
+#Vista para ver el inventario (administradores y empleados) # cspell:ignore inventario
 @login_required
 def inventario(request):
     prendas = Prenda.objects.all()
     
     #Filtros de busqueda
-    busqueda=escape(request.GET.get('busqueda', '').strip())
-    tipo=escape(request.GET.get('tipo', '').strip())
-    color=escape(request.GET.get('color', '').strip())
-    genero=escape(request.GET.get('genero', '').strip())
-    estatus=escape(request.GET.get('estatus', '').strip())
-    talla=escape(request.GET.get('talla', '').strip())
-    precio_min=request.GET.get('precio_min', '').strip()
-    precio_max=request.GET.get('precio_max', '').strip()
+    filtros = {
+        'busqueda': escape(request.GET.get('busqueda', '').strip()),
+        'tipo': escape(request.GET.get('tipo', '').strip()),
+        'color': escape(request.GET.get('color', '').strip()),
+        'genero': escape(request.GET.get('genero', '').strip()),
+        'estatus': escape(request.GET.get('estatus', '').strip()),
+        'talla': escape(request.GET.get('talla', '').strip())
+    }
     
-    if busqueda:
-        prendas=prendas.filter(nombre__icontains=busqueda)
-    
-    if tipo:
-        prendas=prendas.filter(tipo=tipo)
-        
-    if color:
-        prendas=prendas.filter(color=color)
-        
-    if genero:
-        prendas=prendas.filter(genero=genero)
-    
-    if estatus:
-        prendas=prendas.filter(estatus=estatus)
-        
-    if talla:
-        prendas=prendas.filter(tallas__icontains=talla)
-        
-    if precio_min:
-        try:
-            precio_min_val = float(precio_min)
-            if not (precio_min_val != precio_min_val):  # Check for NaN
-                prendas=prendas.filter(precio__gte=precio_min_val)
-        except (ValueError, TypeError):
-            pass
-        
-    if precio_max:
-        try:
-            precio_max_val = float(precio_max)
-            if not (precio_max_val != precio_max_val):  # Check for NaN
-                prendas=prendas.filter(precio__lte=precio_max_val)
-        except (ValueError, TypeError):
-            pass
+    prendas = _aplicar_filtros_basicos(prendas, filtros)
+    prendas = _aplicar_filtro_precio(prendas, request.GET.get('precio_min', '').strip(), 'gte')
+    prendas = _aplicar_filtro_precio(prendas, request.GET.get('precio_max', '').strip(), 'lte')
         
     #Obtener opciones de filtros
     tipos_prenda=Prenda.TIPOS
@@ -148,11 +150,14 @@ def gestionar_variantes(request, pk):
     if request.method == 'POST':
         form = PrendaVarianteForm(request.POST, request.FILES)
         if form.is_valid():
-            variante = form.save(commit=False)
-            variante.prenda = prenda
-            variante.save()
-            messages.success(request, 'Variante agregada correctamente.')
-            return redirect('gestionar_variantes', pk=pk)
+            try:
+                variante = form.save(commit=False)
+                variante.prenda = prenda
+                variante.save()
+                messages.success(request, 'Variante agregada correctamente.')
+                return redirect('gestionar_variantes', pk=pk)
+            except IntegrityError:
+                messages.error(request, 'Ya existe una variante con los mismos detalles.')
     else:
         form = PrendaVarianteForm()
     
@@ -179,3 +184,25 @@ def eliminar_variante(request, pk):
         return redirect('gestionar_variantes', pk=prenda_pk)
     
     return render(request, 'inventario/confirmar_eliminar_variante.html', {'variante': variante})
+
+#Vista para editar variante
+@login_required
+def editar_variante(request, pk):
+    if request.user.rol != 'admin':
+        messages.error(request, 'No tienes permiso para editar variantes.')
+        return redirect('prenda_lista')
+
+    variante = get_object_or_404(PrendaVariante, pk=pk)
+
+    if request.method == 'POST':
+        form = PrendaVarianteForm(request.POST, request.FILES, instance=variante)
+        if form.is_valid():
+            variante = form.save()
+            messages.success(request, 'Variante editada correctamente.')
+            return redirect('gestionar_variantes', pk=variante.prenda.pk)
+    else:
+        form = PrendaVarianteForm(instance=variante)
+
+    return render(request, 'inventario/editar_variante.html', {'form': form, 'variante': variante})
+
+
