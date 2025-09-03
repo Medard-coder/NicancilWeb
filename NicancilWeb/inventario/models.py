@@ -98,3 +98,18 @@ def crear_unidades_automaticamente(sender, instance, created, **kwargs):
         #Crear unidades para cada variante automaticamente
         for i in range(instance.cantidad):
             PrendaUnidad.objects.create(variante=instance)
+
+class Cliente(models.Model):
+    nombre = models.CharField(max_length=100)
+    telefono = models.CharField(max_length=15)
+    correo = models.EmailField()
+    direccion = models.TextField()
+    fecha_registro = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Cliente"
+        verbose_name_plural = "Clientes"
+        ordering = ['nombre']
+    
+    def __str__(self):
+        return self.nombre
