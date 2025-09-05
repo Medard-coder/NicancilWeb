@@ -44,7 +44,7 @@ class PrendaVariante(models.Model):
     color = models.CharField(max_length=50)
     talla = models.CharField(max_length=20)
     cantidad = models.PositiveIntegerField(default=1)
-    estatus = models.CharField(max_length=20, choices=Prenda.ESTATUS, default='disponible')
+    estatus = models.CharField(max_length=20, choices=Prenda.ESTATUS)
     imagen = models.ImageField(upload_to='variantes/', null=True, blank=True)
 
     class Meta:
@@ -76,10 +76,12 @@ class PrendaUnidad(models.Model):
     
     def save(self, *args, **kwargs):
         if not self.numero_serie:
-            #Generar numero de serie automatico
-            variante_prefix=f"{self.variante.prenda.id}-{self.variante.id}"
-            count=PrendaUnidad.objects.filter(variante=self.variante).count()
-            self.numero_serie=f"{variante_prefix}-{count+1:03d}"
+            #Generar numero de serie con estructura: NOM-TAL-COL-NUM
+            nombre_prefix = self.variante.prenda.nombre[:3].upper().replace(' ', '')
+            talla_prefix = self.variante.talla[:3].upper().replace(' ', '')
+            color_prefix = self.variante.color[:3].upper().replace(' ', '')
+            count = PrendaUnidad.objects.filter(variante=self.variante).count()
+            self.numero_serie = f"{nombre_prefix}-{talla_prefix}-{color_prefix}-{count+1:03d}"
         super().save(*args, **kwargs)
         
 def crear_unidades_automaticamente(sender, instantce, created, **kwargs):
@@ -97,19 +99,17 @@ def crear_unidades_automaticamente(sender, instance, created, **kwargs):
     if created:
         #Crear unidades para cada variante automaticamente
         for i in range(instance.cantidad):
-            PrendaUnidad.objects.create(variante=instance)
+            PrendaUnidad.objects.create(variante=instance, estatus=instance.estatus)
 
-class Cliente(models.Model):
-    nombre = models.CharField(max_length=100)
-    telefono = models.CharField(max_length=15)
-    correo = models.EmailField()
-    direccion = models.TextField()
-    fecha_registro = models.DateTimeField(auto_now_add=True)
-    
-    class Meta:
-        verbose_name = "Cliente"
-        verbose_name_plural = "Clientes"
-        ordering = ['nombre']
-    
-    def __str__(self):
-        return self.nombre
+@receiver(post_save, sender=Prenda)
+def crear_variante_original(sender, instance, created, **kwargs):
+    if created:
+        #Crear variante original automáticamente
+        variante_original = PrendaVariante.objects.create(
+            prenda=instance,
+            color=instance.color or 'Original',
+            talla=instance.tallas or 'Única',
+            cantidad=instance.cantidad,
+            estatus=instance.estatus
+        )
+
