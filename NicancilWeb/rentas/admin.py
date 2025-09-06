@@ -10,7 +10,7 @@ class ClienteAdmin(admin.ModelAdmin):
 
 @admin.register(Renta)
 class RentaAdmin(admin.ModelAdmin):
-    list_display = ('id', 'cliente', 'estado', 'fecha_inicio', 'fecha_fin')
+    list_display = ('id', 'cliente', 'precio_total', 'estado', 'fecha_inicio', 'fecha_fin')
     list_filter = ('estado', 'fecha_inicio')
     search_fields = ('cliente__nombre',)
     filter_horizontal = ('prendas',)
