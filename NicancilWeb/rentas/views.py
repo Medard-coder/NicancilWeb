@@ -60,12 +60,46 @@ def lista_clientes(request):
 
 @login_required
 def nuevo_cliente(request):
+    redirect_to = request.GET.get('next', 'lista_clientes')
+    
     if request.method == 'POST':
         form = ClienteForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Cliente creado exitosamente.')
-            return redirect('lista_clientes')
+            cliente = form.save()
+            messages.success(request, f'Cliente "{cliente.nombre}" creado exitosamente.')
+            
+            # Si viene desde nueva_renta, redirigir allá
+            if redirect_to == 'nueva_renta':
+                return redirect('nueva_renta')
+            else:
+                return redirect('lista_clientes')
     else:
         form = ClienteForm()
-    return render(request, 'rentas/nuevo_cliente.html', {'form': form})
+    
+    context = {
+        'form': form,
+        'redirect_to': redirect_to
+    }
+    return render(request, 'rentas/nuevo_cliente.html', context)
+
+@login_required
+def editar_cliente(request, pk):
+    cliente = get_object_or_404(Cliente, pk=pk)
+    if request.method == 'POST':
+        form = ClienteForm(request.POST, instance=cliente)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Cliente "{cliente.nombre}" editado exitosamente.')
+            return redirect('lista_clientes')
+    else:
+        form = ClienteForm(instance=cliente)
+    return render(request, 'rentas/editar_cliente.html', {'form': form, 'cliente': cliente})
+
+@login_required
+def eliminar_cliente(request, pk):
+    cliente = get_object_or_404(Cliente, pk=pk)
+    if request.method == 'POST':
+        cliente.delete()
+        messages.success(request, f'Cliente "{cliente.nombre}" eliminado exitosamente.')
+        return redirect('lista_clientes')
+    return render(request, 'rentas/confirmar_eliminar_cliente.html', {'cliente': cliente})

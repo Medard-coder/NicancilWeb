@@ -1,0 +1,43 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}Eliminar Cliente{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Confirmar Eliminación de Cliente</h5>
+                </div>
+                <div class="card-body">
+                    <p>¿Está seguro que desea eliminar al cliente <strong>{{ cliente.nombre }}</strong>?</p>
+                    
+                    <div class="mb-3">
+                        <strong>Información del cliente:</strong>
+                        <ul>
+                            <li><strong>Teléfono:</strong> {{ cliente.telefono }}</li>
+                            <li><strong>Correo:</strong> {{ cliente.correo }}</li>
+                            <li><strong>Rentas activas:</strong> {{ cliente.rentas_activas }}</li>
+                        </ul>
+                    </div>
+                    
+                    {% if cliente.rentas_activas > 0 %}
+                    <div class="alert alert-warning">
+                        <strong>Advertencia:</strong> Este cliente tiene rentas activas. Eliminar el cliente puede afectar las rentas existentes.
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'lista_clientes' %}" class="btn btn-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-danger">Eliminar Cliente</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -16,6 +16,9 @@ class Cliente(models.Model):
     
     def __str__(self):
         return self.nombre
+    
+    def rentas_activas(self):
+        return self.rentas.filter(estado='activa').count()
 
 class Renta(models.Model):
     ESTADOS = (
