@@ -27,7 +27,7 @@ class Renta(models.Model):
     prendas = models.ManyToManyField(PrendaUnidad, related_name='rentas')
     fecha_inicio = models.DateTimeField()
     fecha_fin = models.DateTimeField()
-    precio_total = models.DecimalField(max_digits=10, decimal_places=2)
+    precio_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     estado = models.CharField(max_length=20, choices=ESTADOS, default='activa')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     

@@ -1,0 +1,61 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}Lista de Rentas{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Lista de Rentas</h2>
+        <a href="{% url 'nueva_renta' %}" class="btn btn-primary">Nueva Renta</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Cliente</th>
+                    <th>Prendas</th>
+                    <th>Fecha Inicio</th>
+                    <th>Fecha Fin</th>
+                    <th>Precio Total</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for renta in rentas %}
+                <tr>
+                    <td>{{ renta.id }}</td>
+                    <td>{{ renta.cliente.nombre }}</td>
+                    <td>
+                        <ul class="list-unstyled mb-0">
+                            {% for prenda in renta.prendas.all %}
+                            <li><small>{{ prenda.numero_serie }} - {{ prenda.variante }}</small></li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td>{{ renta.fecha_inicio|date:"d/m/Y H:i" }}</td>
+                    <td>{{ renta.fecha_fin|date:"d/m/Y H:i" }}</td>
+                    <td>${{ renta.precio_total }}</td>
+                    <td>
+                        <span class="badge {% if renta.estado == 'activa' %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ renta.get_estado_display }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if renta.estado == 'activa' %}
+                        <a href="{% url 'finalizar_renta' renta.pk %}" class="btn btn-sm btn-warning">Finalizar</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center">No hay rentas registradas</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
