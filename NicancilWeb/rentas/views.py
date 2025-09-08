@@ -1,105 +1,93 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
 from django.http import JsonResponse
-from .models import Renta, Cliente
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import get_object_or_404, render
 from inventario.models import PrendaUnidad
-from .forms import RentaForm, ClienteForm
+from .models import Renta
+import json
+from datetime import datetime, timedelta
 
-@login_required
+def lista_prendas_calendario(request):
+    """Vista para mostrar todas las prendas con sus calendarios"""
+    prendas = PrendaUnidad.objects.all()
+    return render(request, 'rentas/lista_prendas_calendario.html', {'prendas': prendas})
+
 def lista_rentas(request):
-    rentas = Renta.objects.all()
+    """Vista para listar todas las rentas"""
+    rentas = Renta.objects.all().order_by('-fecha_creacion')
     return render(request, 'rentas/lista_rentas.html', {'rentas': rentas})
 
-@login_required
-def nueva_renta(request):
-    if request.method == 'POST':
-        form = RentaForm(request.POST)
-        prendas_ids = request.POST.getlist('prendas')
-        
-        if form.is_valid() and prendas_ids:
-            renta = form.save(commit=False)
-            renta.precio_total = 0
-            renta.save()
-            
-            # Agregar prendas seleccionadas
-            prendas = PrendaUnidad.objects.filter(id__in=prendas_ids, estatus='disponible')
-            renta.prendas.set(prendas)
-            
-            # Calcular precio total
-            renta.calcular_precio_total()
-            renta.save()
-            
-            messages.success(request, 'Renta creada exitosamente.')
-            return redirect('lista_rentas')
-        elif not prendas_ids:
-            messages.error(request, 'Debe seleccionar al menos una prenda.')
-    else:
-        form = RentaForm()
-    
-    prendas_disponibles = PrendaUnidad.objects.filter(estatus='disponible')
-    
-    return render(request, 'rentas/nueva_renta.html', {
-        'form': form,
-        'prendas_disponibles': prendas_disponibles
-    })
-
-@login_required
-def finalizar_renta(request, pk):
-    renta = get_object_or_404(Renta, pk=pk)
-    if request.method == 'POST':
-        renta.finalizar_renta()
-        messages.success(request, 'Renta finalizada exitosamente.')
-        return redirect('lista_rentas')
-    return render(request, 'rentas/confirmar_finalizar.html', {'renta': renta})
-
-@login_required
 def lista_clientes(request):
-    clientes = Cliente.objects.all()
+    """Vista para listar todos los clientes"""
+    clientes = Cliente.objects.all().order_by('nombre')
     return render(request, 'rentas/lista_clientes.html', {'clientes': clientes})
 
-@login_required
-def nuevo_cliente(request):
-    redirect_to = request.GET.get('next', 'lista_clientes')
+def nueva_renta(request):
+    """Vista para crear nueva renta"""
+    if request.method == 'POST':
+        # Lógica para crear renta
+        pass
     
-    if request.method == 'POST':
-        form = ClienteForm(request.POST)
-        if form.is_valid():
-            cliente = form.save()
-            messages.success(request, f'Cliente "{cliente.nombre}" creado exitosamente.')
-            
-            # Si viene desde nueva_renta, redirigir allá
-            if redirect_to == 'nueva_renta':
-                return redirect('nueva_renta')
-            else:
-                return redirect('lista_clientes')
-    else:
-        form = ClienteForm()
+    clientes = Cliente.objects.all()
+    prendas = PrendaUnidad.objects.filter(estatus='disponible')
+    return render(request, 'rentas/nueva_renta.html', {
+        'clientes': clientes,
+        'prendas': prendas
+    })
+
+def sincronizar_google_calendar(request, renta_id):
+    """Sincronizar renta con Google Calendar"""
+    from .google_calendar import GoogleCalendarService
     
-    context = {
-        'form': form,
-        'redirect_to': redirect_to
-    }
-    return render(request, 'rentas/nuevo_cliente.html', context)
+    renta = get_object_or_404(Renta, id=renta_id)
+    calendar_service = GoogleCalendarService()
+    
+    try:
+        for prenda in renta.prendas.all():
+            calendar_service.crear_evento_renta(prenda, renta)
+        
+        return JsonResponse({'success': True, 'message': 'Eventos creados en Google Calendar'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
 
-@login_required
-def editar_cliente(request, pk):
-    cliente = get_object_or_404(Cliente, pk=pk)
-    if request.method == 'POST':
-        form = ClienteForm(request.POST, instance=cliente)
-        if form.is_valid():
-            form.save()
-            messages.success(request, f'Cliente "{cliente.nombre}" editado exitosamente.')
-            return redirect('lista_clientes')
-    else:
-        form = ClienteForm(instance=cliente)
-    return render(request, 'rentas/editar_cliente.html', {'form': form, 'cliente': cliente})
+@csrf_exempt
+def calendario_prenda(request, prenda_id):
+    """API para obtener fechas ocupadas de una prenda específica"""
+    prenda = get_object_or_404(PrendaUnidad, id=prenda_id)
+    
+    # Obtener rentas activas de esta prenda
+    rentas = Renta.objects.filter(
+        prendas=prenda,
+        estado='activa'
+    ).values('fecha_inicio', 'fecha_fin', 'cliente__nombre')
+    
+    eventos = []
+    for renta in rentas:
+        eventos.append({
+            'title': f"Rentado - {renta['cliente__nombre']}",
+            'start': renta['fecha_inicio'].strftime('%Y-%m-%d'),
+            'end': renta['fecha_fin'].strftime('%Y-%m-%d'),
+            'color': '#dc3545',
+            'textColor': '#fff'
+        })
+    
+    return JsonResponse(eventos, safe=False)
 
-@login_required
-def eliminar_cliente(request, pk):
-    cliente = get_object_or_404(Cliente, pk=pk)
+@csrf_exempt
+def disponibilidad_prenda(request, prenda_id):
+    """Verificar disponibilidad de prenda en fechas específicas"""
     if request.method == 'POST':
-        cliente.delete()
-        messages.success(request, f'Cliente "{cliente.nombre}" eliminado exitosamente.')
-        return redirect('lista_clientes')
-    return render(request, 'rentas/confirmar_eliminar_cliente.html', {'cliente': cliente})
+        data = json.loads(request.body)
+        fecha_inicio = datetime.strptime(data['fecha_inicio'], '%Y-%m-%d')
+        fecha_fin = datetime.strptime(data['fecha_fin'], '%Y-%m-%d')
+        
+        conflictos = Renta.objects.filter(
+            prendas__id=prenda_id,
+            estado='activa',
+            fecha_inicio__lt=fecha_fin,
+            fecha_fin__gt=fecha_inicio
+        ).exists()
+        
+        return JsonResponse({
+            'disponible': not conflictos,
+            'mensaje': 'Disponible' if not conflictos else 'No disponible en esas fechas'
+        })
