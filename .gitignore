@@ -1,0 +1,21 @@
+# Credenciales y archivos sensibles
+credentials/
+*.json
+*.key
+*.pem
+
+# Django
+*.pyc
+__pycache__/
+db.sqlite3
+media/
+staticfiles/
+
+# Entornos virtuales
+venv/
+env/
+.env
+
+# IDE
+.vscode/
+.idea/
