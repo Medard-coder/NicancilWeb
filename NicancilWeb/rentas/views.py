@@ -14,7 +14,24 @@ def lista_prendas_calendario(request):
 def lista_rentas(request):
     """Vista para listar todas las rentas"""
     rentas = Renta.objects.all().order_by('-fecha_creacion')
-    return render(request, 'rentas/lista_rentas.html', {'rentas': rentas})
+    
+    # Obtener rentas activas para el calendario
+    rentas_activas = Renta.objects.filter(estado='activa')
+    eventos_calendario = []
+    
+    for renta in rentas_activas:
+        eventos_calendario.append({
+            'title': f"Renta #{renta.id} - {renta.cliente.nombre}",
+            'start': renta.fecha_inicio.strftime('%Y-%m-%d'),
+            'end': renta.fecha_fin.strftime('%Y-%m-%d'),
+            'color': '#007bff',
+            'textColor': '#fff'
+        })
+    
+    return render(request, 'rentas/lista_rentas.html', {
+        'rentas': rentas,
+        'eventos_calendario': json.dumps(eventos_calendario)
+    })
 
 def lista_clientes(request):
     """Vista para listar todos los clientes"""
