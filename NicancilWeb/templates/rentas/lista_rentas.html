@@ -4,7 +4,20 @@
 
 {% block content %}
 <div class="container-fluid">
-    <h2>Lista de Rentas</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Lista de Rentas</h2>
+        <div>
+            <a href="{% url 'nueva_renta' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nueva Renta
+            </a>
+            <a href="{% url 'lista_clientes' %}" class="btn btn-secondary">
+                <i class="fas fa-users"></i> Clientes
+            </a>
+            <a href="{% url 'lista_prendas_calendario' %}" class="btn btn-info">
+                <i class="fas fa-calendar"></i> Calendarios
+            </a>
+        </div>
+    </div>
     
     <div class="row">
         <div class="col-12">

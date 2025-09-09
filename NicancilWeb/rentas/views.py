@@ -2,7 +2,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404, render
 from inventario.models import PrendaUnidad
-from .models import Renta
+from .models import Renta, Cliente
 import json
 from datetime import datetime, timedelta
 

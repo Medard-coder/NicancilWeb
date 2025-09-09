@@ -3,6 +3,8 @@ credentials/
 *.json
 *.key
 *.pem
+.env
+.env.*
 
 # Django
 *.pyc
@@ -14,7 +16,6 @@ staticfiles/
 # Entornos virtuales
 venv/
 env/
-.env
 
 # IDE
 .vscode/
