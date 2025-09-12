@@ -23,6 +23,7 @@ class Cliente(models.Model):
 class Renta(models.Model):
     ESTADOS = (
         ('activa', 'Activa'),
+        ('pendiente_devolucion', 'Pendiente de Devolución'),
         ('finalizada', 'Finalizada'),
     )
     

@@ -28,7 +28,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header text-center">
-                    <h5 class="mb-0">Calendario de Rentas Activas</h5>
+                    <h5 class="mb-0">Calendario de Rentas</h5>
                 </div>
                 <div class="card-body">
                     <div id="calendar"></div>
@@ -64,7 +64,15 @@
                                 <td>{{ renta.fecha_inicio|date:"d/m/Y" }}</td>
                                 <td>{{ renta.fecha_fin|date:"d/m/Y" }}</td>
                                 <td>
-                                    <span class="badge {% if renta.estado == 'activa' %}badge-success{% else %}badge-secondary{% endif %}">
+                                    <span class="badge" style="
+                                        {% if renta.estado == 'activa' %}
+                                            background-color: #28a745; color: white;
+                                        {% elif renta.estado == 'pendiente_devolucion' %}
+                                            background-color: #dc3545; color: white;
+                                        {% elif renta.estado == 'finalizada' %}
+                                            background-color: #ffc107; color: black;
+                                        {% endif %}
+                                    ">
                                         {{ renta.get_estado_display }}
                                     </span>
                                 </td>
@@ -104,8 +112,19 @@ document.addEventListener('DOMContentLoaded', function() {
         events: {{ eventos_calendario|safe }},
         eventDisplay: 'block',
         height: 'auto',
+        today: true,
+        nowIndicator: true,
+        dayMaxEvents: true,
         eventClick: function(info) {
             alert('Renta: ' + info.event.title);
+        },
+        dayCellDidMount: function(info) {
+            var today = new Date();
+            var cellDate = info.date;
+            if (cellDate.toDateString() === today.toDateString()) {
+                info.el.style.backgroundColor = '#e3f2fd';
+                info.el.style.border = '2px solid #2196f3';
+            }
         }
     });
     calendar.render();
