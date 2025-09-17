@@ -21,3 +21,10 @@ class ClienteForm(forms.ModelForm):
             'correo': forms.EmailInput(attrs={'class': 'form-control'}),
             'direccion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+    
+    def clean_nombre(self):
+        nombre = self.cleaned_data['nombre']
+        # Verificar si ya existe un cliente con el mismo nombre (sin importar mayúsculas/minúsculas)
+        if Cliente.objects.filter(nombre__iexact=nombre).exists():
+            raise forms.ValidationError('Ya existe un cliente con este nombre.')
+        return nombre

@@ -18,7 +18,7 @@ class Cliente(models.Model):
         return self.nombre
     
     def rentas_activas(self):
-        return self.rentas.filter(estado='activa').count()
+        return self.rentas.filter(estado__in=['activa', 'pendiente_devolucion']).count()
 
 class Renta(models.Model):
     ESTADOS = (

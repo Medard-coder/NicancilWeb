@@ -7,18 +7,16 @@
 {% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Lista de Rentas</h2>
+        <h2>Rentas</h2>
         <div>
             <a href="{% url 'nueva_renta' %}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Nueva Renta
             </a>
             <a href="{% url 'lista_clientes' %}" class="btn btn-secondary">
                 <i class="fas fa-users"></i> Clientes
-            </a>
-            <a href="{% url 'lista_prendas_calendario' %}" class="btn btn-info">
-                <i class="fas fa-calendar"></i> Calendarios
             </a>
         </div>
     </div>
@@ -78,7 +76,12 @@
                                 </td>
                                 <td>${{ renta.precio_total }}</td>
                                 <td>
-                                    <a href="{% url 'lista_prendas_calendario' %}" class="btn btn-sm btn-info">Ver Calendarios</a>
+                                    <button onclick="sincronizarRenta({{ renta.id }})" class="btn btn-sm btn-success" id="sync-btn-{{ renta.id }}">
+                                        <i class="bi bi-cloud-arrow-up"></i> Sync Google
+                                    </button>
+                                    <button onclick="confirmarFinalizarRenta({{ renta.id }}, '{{ renta.cliente.nombre }}')" class="btn btn-sm btn-danger">
+                                        <i class="bi bi-check-circle"></i> Finalizar Renta
+                                    </button>
                                 </td>
                             </tr>
                             {% empty %}
@@ -129,5 +132,96 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     calendar.render();
 });
+
+// Función para sincronizar renta con Google Calendar
+function sincronizarRenta(rentaId) {
+    const button = document.getElementById(`sync-btn-${rentaId}`);
+    const originalHTML = button.innerHTML;
+    
+    // Cambiar apariencia del botón mientras se procesa
+    button.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Sincronizando...';
+    button.disabled = true;
+    button.classList.add('btn-warning');
+    button.classList.remove('btn-success');
+    
+    fetch(`/rentas/api/renta/${rentaId}/sincronizar/`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Mostrar alert de éxito
+            alert('✅ Éxito: ' + data.message);
+            
+            // Cambiar botón a estado sincronizado
+            button.innerHTML = '<i class="bi bi-check-circle"></i> Sincronizado';
+            button.classList.remove('btn-warning', 'btn-success');
+            button.classList.add('btn-outline-success');
+        } else {
+            // Mostrar alert de error
+            alert('❌ Error: ' + data.message);
+            
+            // Restaurar botón original
+            button.innerHTML = originalHTML;
+            button.classList.remove('btn-warning');
+            button.classList.add('btn-success');
+        }
+    })
+    .catch(error => {
+        // Mostrar alert de error de conexión
+        alert('❌ Error de conexión: No se pudo conectar con Google Calendar');
+        
+        // Restaurar botón original
+        button.innerHTML = originalHTML;
+        button.classList.remove('btn-warning');
+        button.classList.add('btn-success');
+    })
+    .finally(() => {
+        button.disabled = false;
+    });
+}
+
+// Función para confirmar finalización de renta
+function confirmarFinalizarRenta(rentaId, clienteNombre) {
+    const confirmacion = confirm(
+        `¿Estás seguro de que deseas finalizar la renta #${rentaId} del cliente ${clienteNombre}?\n\n` +
+        `Esta acción:\n` +
+        `• Eliminará la renta de la base de datos\n` +
+        `• Eliminará el evento del calendario de Google\n` +
+        `• Liberará las prendas para nuevas rentas\n\n` +
+        `Esta acción NO se puede deshacer.`
+    );
+    
+    if (confirmacion) {
+        finalizarRenta(rentaId);
+    }
+}
+
+// Función para finalizar renta
+function finalizarRenta(rentaId) {
+    fetch(`/rentas/api/renta/${rentaId}/finalizar/`, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            // Recargar la página para actualizar la lista
+            window.location.reload();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Error de conexión: No se pudo finalizar la renta');
+    });
+}
 </script>
 {% endblock %}
