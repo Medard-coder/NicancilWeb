@@ -25,6 +25,7 @@ urlpatterns = [
     path('', include('usuarios.urls')),
     path('', include('inventario.urls')),
     path('rentas/', include('rentas.urls')),
+    path('citas/', include('citas.urls')),
     path('', RedirectView.as_view(url='/login/', permanent=False),),
 ]
 

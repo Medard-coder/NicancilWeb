@@ -4,7 +4,15 @@
 
 {% block content %}
 <div class="container-fluid">
-    <h2>Clientes</h2>
+    {% csrf_token %}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Clientes</h2>
+        {% if redirect_to == 'lista_citas' %}
+        <div class="alert alert-info mb-0 py-2">
+            <i class="fas fa-info-circle"></i> Después de crear el cliente, regresarás a <strong>Gestión de Citas</strong>
+        </div>
+        {% endif %}
+    </div>
     
     <!-- Mensajes de éxito y error -->
     {% if messages %}
@@ -84,6 +92,7 @@
                                 <th>Correo</th>
                                 <th>Rentas Activas</th>
                                 <th>Fecha Registro</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -94,10 +103,17 @@
                                 <td>{{ cliente.correo }}</td>
                                 <td>{{ cliente.rentas_activas }}</td>
                                 <td>{{ cliente.fecha_registro|date:"d/m/Y" }}</td>
+                                <td>
+                                    <button onclick="confirmarEliminarCliente({{ cliente.id }}, '{{ cliente.nombre }}')"
+                                            class="btn btn-sm btn-danger"
+                                            {% if cliente.rentas_activas > 0 %}disabled title="No se puede eliminar: tiene rentas activas"{% endif %}>
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="5" class="text-center">No hay clientes registrados</td>
+                                <td colspan="6" class="text-center">No hay clientes registrados</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -107,4 +123,41 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function confirmarEliminarCliente(clienteId, clienteNombre) {
+    const confirmacion = confirm(
+        `¿Estás seguro de que deseas eliminar al cliente "${clienteNombre}"?\n\n` +
+        `Esta acción NO se puede deshacer.`
+    );
+    
+    if (confirmacion) {
+        eliminarCliente(clienteId);
+    }
+}
+
+function eliminarCliente(clienteId) {
+    fetch(`/rentas/clientes/${clienteId}/eliminar/`, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ ' + data.message);
+            window.location.reload();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('❌ Error de conexión: No se pudo eliminar el cliente');
+    });
+}
+</script>
 {% endblock %}

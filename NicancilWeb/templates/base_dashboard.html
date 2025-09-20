@@ -41,7 +41,7 @@
                 Prendas Disponibles
             </a>
             {% if user.rol == 'admin' %}
-            <a href="#" class="sidebar-nav-item">
+            <a href="{% url 'lista_citas' %}" class="sidebar-nav-item {% if '/citas/' in request.path %}active{% endif %}">
                 <i class="bi bi-calendar-event"></i>
                 Citas
             </a>

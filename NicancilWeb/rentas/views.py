@@ -5,9 +5,9 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from inventario.models import PrendaUnidad
 from .models import Renta, Cliente
-from .forms import RentaForm, ClienteForm
+from .forms import ClienteForm
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 
 def lista_rentas(request):
     """Vista para listar todas las rentas"""
@@ -44,13 +44,18 @@ def lista_rentas(request):
 def lista_clientes(request):
     """Vista para listar todos los clientes y manejar nuevo cliente"""
     from .forms import ClienteForm
+    redirect_to = request.GET.get('next', 'lista_clientes')
     
     if request.method == 'POST':
         form = ClienteForm(request.POST)
         if form.is_valid():
             cliente = form.save()
             messages.success(request, f'Cliente "{cliente.nombre}" creado exitosamente.')
-            return redirect('lista_clientes')
+            
+            if redirect_to == 'lista_citas':
+                return redirect('lista_citas')
+            else:
+                return redirect('lista_clientes')
         else:
             # Mostrar errores de validación
             for field, errors in form.errors.items():
@@ -62,7 +67,8 @@ def lista_clientes(request):
     clientes = Cliente.objects.all().order_by('nombre')
     return render(request, 'rentas/lista_clientes.html', {
         'clientes': clientes,
-        'form': form
+        'form': form,
+        'redirect_to': redirect_to
     })
 
 def nueva_renta(request):
@@ -216,61 +222,27 @@ def finalizar_renta_api(request, renta_id):
     
     return JsonResponse({'success': False, 'message': 'Método no permitido'})
 
-def finalizar_renta(request, pk):
-    renta = get_object_or_404(Renta, pk=pk)
-    if request.method == 'POST':
-        renta.finalizar_renta()
-        
-        # Sincronizar cambio de estado con Google Calendar
-        try:
-            from .google_calendar import GoogleCalendarService
-            calendar_service = GoogleCalendarService()
-            calendar_service.actualizar_evento_renta(renta)
-            messages.success(request, '✅ Renta finalizada y sincronizada con Google Calendar.')
-        except Exception as e:
-            messages.warning(request, f'⚠️ Renta finalizada localmente, pero no se pudo actualizar en Google Calendar: {str(e)}')
-        
-        return redirect('lista_rentas')
-    return render(request, 'rentas/confirmar_finalizar.html', {'renta': renta})
-
-def nuevo_cliente(request):
-    redirect_to = request.GET.get('next', 'lista_clientes')
-    
-    if request.method == 'POST':
-        form = ClienteForm(request.POST)
-        if form.is_valid():
-            cliente = form.save()
-            messages.success(request, f'Cliente "{cliente.nombre}" creado exitosamente.')
-            
-            if redirect_to == 'nueva_renta':
-                return redirect('nueva_renta')
-            else:
-                return redirect('lista_clientes')
-    else:
-        form = ClienteForm()
-    
-    context = {
-        'form': form,
-        'redirect_to': redirect_to
-    }
-    return render(request, 'rentas/nuevo_cliente.html', context)
-
-def editar_cliente(request, pk):
-    cliente = get_object_or_404(Cliente, pk=pk)
-    if request.method == 'POST':
-        form = ClienteForm(request.POST, instance=cliente)
-        if form.is_valid():
-            form.save()
-            messages.success(request, f'Cliente "{cliente.nombre}" editado exitosamente.')
-            return redirect('lista_clientes')
-    else:
-        form = ClienteForm(instance=cliente)
-    return render(request, 'rentas/editar_cliente.html', {'form': form, 'cliente': cliente})
-
 def eliminar_cliente(request, pk):
     cliente = get_object_or_404(Cliente, pk=pk)
     if request.method == 'POST':
-        cliente.delete()
-        messages.success(request, f'Cliente "{cliente.nombre}" eliminado exitosamente.')
-        return redirect('lista_clientes')
-    return render(request, 'rentas/confirmar_eliminar_cliente.html', {'cliente': cliente})
+        try:
+            # Verificar que no tenga rentas activas
+            if cliente.rentas_activas() > 0:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'No se puede eliminar: el cliente tiene rentas activas'
+                })
+            
+            cliente_nombre = cliente.nombre
+            cliente.delete()
+            return JsonResponse({
+                'success': True,
+                'message': f'Cliente "{cliente_nombre}" eliminado exitosamente'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Error al eliminar cliente: {str(e)}'
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Método no permitido'})
