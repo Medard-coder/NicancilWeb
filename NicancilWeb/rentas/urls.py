@@ -11,4 +11,5 @@ urlpatterns = [
     path('api/prenda/<int:prenda_id>/disponibilidad/', views.disponibilidad_prenda, name='disponibilidad_prenda'),
     path('api/renta/<int:renta_id>/sincronizar/', views.sincronizar_google_calendar, name='sincronizar_google_calendar'),
     path('api/renta/<int:renta_id>/finalizar/', views.finalizar_renta_api, name='finalizar_renta_api'),
+    path('api/prenda/<int:prenda_id>/variantes/', views.obtener_variantes_prenda, name='obtener_variantes_prenda'),
 ]

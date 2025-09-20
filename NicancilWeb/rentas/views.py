@@ -3,7 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from inventario.models import PrendaUnidad
+from inventario.models import PrendaUnidad, Prenda, PrendaVariante
 from .models import Renta, Cliente
 from .forms import ClienteForm
 import json
@@ -77,11 +77,12 @@ def nueva_renta(request):
         cliente_id = request.POST.get('cliente')
         fecha_inicio = request.POST.get('fecha_inicio')
         fecha_fin = request.POST.get('fecha_fin')
-        prendas_ids = request.POST.getlist('prendas')
+        prendas_data = request.POST.get('prendas_data')
         
-        if cliente_id and fecha_inicio and fecha_fin and prendas_ids:
+        if cliente_id and fecha_inicio and fecha_fin and prendas_data:
             try:
                 cliente = Cliente.objects.get(id=cliente_id)
+                prendas_seleccionadas = json.loads(prendas_data)
                 
                 # Crear la renta
                 renta = Renta.objects.create(
@@ -91,9 +92,16 @@ def nueva_renta(request):
                     precio_total=0
                 )
                 
-                # Agregar prendas y calcular precio
-                prendas = PrendaUnidad.objects.filter(id__in=prendas_ids, estatus='disponible')
-                renta.prendas.set(prendas)
+                # Agregar prendas seleccionadas
+                prendas_unidades = []
+                for item in prendas_seleccionadas:
+                    unidades = PrendaUnidad.objects.filter(
+                        variante_id=item['variante_id'],
+                        estatus='disponible'
+                    )[:item['cantidad']]
+                    prendas_unidades.extend(unidades)
+                
+                renta.prendas.set(prendas_unidades)
                 renta.calcular_precio_total()
                 renta.save()
                 
@@ -113,8 +121,12 @@ def nueva_renta(request):
         else:
             messages.error(request, 'Todos los campos son obligatorios.')
     
+    from inventario.models import Prenda
     clientes = Cliente.objects.all()
-    prendas = PrendaUnidad.objects.filter(estatus='disponible')
+    prendas = Prenda.objects.filter(
+        variantes__unidades__estatus='disponible'
+    ).distinct().order_by('nombre')
+    
     return render(request, 'rentas/nueva_renta.html', {
         'clientes': clientes,
         'prendas': prendas
@@ -221,6 +233,40 @@ def finalizar_renta_api(request, renta_id):
             })
     
     return JsonResponse({'success': False, 'message': 'Método no permitido'})
+
+@csrf_exempt
+def obtener_variantes_prenda(request, prenda_id):
+    """API para obtener variantes y unidades disponibles de una prenda"""
+    try:
+        prenda = get_object_or_404(Prenda, id=prenda_id)
+        variantes_data = []
+        
+        for variante in prenda.variantes.all():
+            unidades_disponibles = variante.unidades.filter(estatus='disponible').count()
+            if unidades_disponibles > 0:
+                variantes_data.append({
+                    'id': variante.id,
+                    'color': variante.color,
+                    'talla': variante.talla,
+                    'unidades_disponibles': unidades_disponibles,
+                    'imagen': variante.imagen.url if variante.imagen else None
+                })
+        
+        return JsonResponse({
+            'success': True,
+            'prenda': {
+                'id': prenda.id,
+                'nombre': prenda.nombre,
+                'precio': float(prenda.precio),
+                'imagen': prenda.imagen.url if prenda.imagen else None
+            },
+            'variantes': variantes_data
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        })
 
 def eliminar_cliente(request, pk):
     cliente = get_object_or_404(Cliente, pk=pk)
