@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
-from .forms import LoginForm, RegistroForm
+from .forms import LoginForm, RegistroForm, EditarPerfilForm
 
 # Vista para login
 def login_view(request):
@@ -65,3 +65,17 @@ def registro_view(request):
         form = RegistroForm()
     
     return render(request, 'usuarios/registro.html', {'form': form})
+
+# Vista para editar perfil de usuario
+@login_required
+def editar_perfil(request):
+    if request.method == 'POST':
+        form = EditarPerfilForm(request.POST, request.FILES, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Perfil actualizado exitosamente.')
+            return redirect('editar_perfil')
+    else:
+        form = EditarPerfilForm(instance=request.user)
+    
+    return render(request, 'usuarios/editar_perfil.html', {'form': form})

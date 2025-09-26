@@ -13,144 +13,71 @@
 </head>
 <body>
     <!-- Sidebar fijo -->
-    <div class="sidebar position-fixed" id="sidebar" style="width: 250px; transition: all 0.3s ease;">
+    <div class="sidebar position-fixed" id="sidebar">
         <div class="p-3">
-            <h1 class="nicancil-font text-nicancil-teal mb-4" style="transition: opacity 0.3s ease, visibility 0.3s ease;">Nicancil</h1>
-            <div class="user-profile" style="transition: all 0.3s ease;">
+            <h1 class="nicancil-font text-nicancil-teal mb-4">Nicancil</h1>
+            <a href="{% url 'editar_perfil' %}" class="user-profile text-decoration-none">
                 <div class="user-icon">
-                    <i class="bi bi-person-fill"></i>
+                    {% if user.foto_perfil %}
+                        <img src="{{ user.foto_perfil.url }}" alt="Perfil" class="rounded-circle" style="width: 24px; height: 24px; object-fit: cover;">
+                    {% else %}
+                        <i class="bi bi-person-fill"></i>
+                    {% endif %}
                 </div>
-                <span class="user-name" style="transition: opacity 0.3s ease, visibility 0.3s ease;">{{ user.username }}</span>
-            </div>
+                <span class="user-name">{{ user.first_name|default:user.username }}</span>
+            </a>
         </div>
         
-        <div class="sidebar-section-title" style="transition: opacity 0.3s ease, visibility 0.3s ease;">Opciones</div>
+        <div class="sidebar-section-title">Opciones</div>
         <nav class="sidebar-nav">
             {% if user.rol == 'admin' %}
             <a href="{% url 'nueva_prenda' %}" class="sidebar-nav-item {% if request.path == '/nueva_prenda/' %}active{% endif %}">
                 <i class="bi bi-plus"></i>
-                <span style="transition: opacity 0.3s ease, visibility 0.3s ease;">Agregar</span>
+                <span>Agregar</span>
             </a>
             {% endif %}
             <a href="{% url 'inventario' %}" class="sidebar-nav-item {% if request.path == '/inventario/' %}active{% endif %}">
                 <i class="bi bi-box"></i>
-                <span style="transition: opacity 0.3s ease, visibility 0.3s ease;">Inventario</span>
+                <span>Inventario</span>
             </a>
             <a href="{% url 'prenda_lista' %}" class="sidebar-nav-item {% if request.path == '/tienda/' %}active{% endif %}">
                 <i class="bi bi-shop"></i>
-                <span style="transition: opacity 0.3s ease, visibility 0.3s ease;">Prendas Disponibles</span>
+                <span>Prendas Disponibles</span>
             </a>
             {% if user.rol == 'admin' %}
             <a href="{% url 'lista_citas' %}" class="sidebar-nav-item {% if '/citas/' in request.path %}active{% endif %}">
                 <i class="bi bi-calendar-event"></i>
-                <span style="transition: opacity 0.3s ease, visibility 0.3s ease;">Citas</span>
+                <span>Citas</span>
             </a>
             {% endif %}
             <a href="{% url 'lista_rentas' %}" class="sidebar-nav-item {% if '/rentas/' in request.path %}active{% endif %}">
                 <i class="bi bi-currency-dollar"></i>
-                <span style="transition: opacity 0.3s ease, visibility 0.3s ease;">Rentas</span>
+                <span>Rentas</span>
             </a>
             {% if user.rol == 'admin' %}
             <a href="#" class="sidebar-nav-item">
                 <i class="bi bi-droplet"></i>
-                <span style="transition: opacity 0.3s ease, visibility 0.3s ease;">Lavado</span>
+                <span>Lavado</span>
             </a>
             <a href="#" class="sidebar-nav-item">
                 <i class="bi bi-bar-chart"></i>
-                <span style="transition: opacity 0.3s ease, visibility 0.3s ease;">Reportes</span>
+                <span>Reportes</span>
             </a>
             {% endif %}
             <a href="{% url 'logout' %}" class="sidebar-nav-item mt-5">
                 <i class="bi bi-box-arrow-right"></i>
-                <span style="transition: opacity 0.3s ease, visibility 0.3s ease;">Cerrar sesión</span>
+                <span>Cerrar sesión</span>
             </a>
         </nav>
     </div>
     
-    <!-- Botón toggle del sidebar -->
-    <button class="sidebar-toggle" id="sidebarToggle" style="position: fixed; left: 190px; top: 20px; z-index: 1001; background-color: #2D9B9A; color: white; border: none; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
-        <i class="bi bi-chevron-left"></i>
-    </button>
     
     <!-- Contenido principal -->
-    <div class="main-content-wrapper" id="mainContent" style="margin-left: 250px; transition: margin-left 0.3s ease;">
+    <div class="main-content-wrapper" id="mainContent">
         {% block content %}{% endblock %}
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Toggle del sidebar
-        const toggleBtn = document.getElementById('sidebarToggle');
-        
-        // Efectos hover
-        toggleBtn.addEventListener('mouseenter', function() {
-            this.style.backgroundColor = '#247877';
-            this.style.transform = 'scale(1.1)';
-        });
-        
-        toggleBtn.addEventListener('mouseleave', function() {
-            this.style.backgroundColor = '#2D9B9A';
-            this.style.transform = 'scale(1)';
-        });
-        
-        // Funcionalidad toggle
-        toggleBtn.addEventListener('click', function() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('mainContent');
-            const toggleIcon = this.querySelector('i');
-            const nicancilFont = sidebar.querySelector('.nicancil-font');
-            const userName = sidebar.querySelector('.user-name');
-            const sectionTitle = sidebar.querySelector('.sidebar-section-title');
-            const navSpans = sidebar.querySelectorAll('.sidebar-nav-item span');
-            const userProfile = sidebar.querySelector('.user-profile');
-            
-            if (sidebar.style.width === '60px') {
-                // Expandir
-                sidebar.style.width = '250px';
-                mainContent.style.marginLeft = '250px';
-                this.style.left = '190px';
-                toggleIcon.className = 'bi bi-chevron-left';
-                
-                // Restaurar user-profile normal
-                userProfile.style.justifyContent = 'flex-start';
-                userProfile.style.padding = '8px 15px';
-                
-                // Mostrar textos
-                nicancilFont.style.opacity = '1';
-                nicancilFont.style.visibility = 'visible';
-                userName.style.opacity = '1';
-                userName.style.visibility = 'visible';
-                sectionTitle.style.opacity = '1';
-                sectionTitle.style.visibility = 'visible';
-                navSpans.forEach(span => {
-                    span.style.opacity = '1';
-                    span.style.visibility = 'visible';
-                });
-            } else {
-                // Colapsar
-                sidebar.style.width = '60px';
-                mainContent.style.marginLeft = '60px';
-                this.style.left = '10px';
-                toggleIcon.className = 'bi bi-chevron-right';
-                
-                // Centrar solo el ícono del user-profile
-                userProfile.style.justifyContent = 'center';
-                userProfile.style.padding = '8px';
-                
-                // Ocultar textos
-                nicancilFont.style.opacity = '0';
-                nicancilFont.style.visibility = 'hidden';
-                userName.style.opacity = '0';
-                userName.style.visibility = 'hidden';
-                sectionTitle.style.opacity = '0';
-                sectionTitle.style.visibility = 'hidden';
-                navSpans.forEach(span => {
-                    span.style.opacity = '0';
-                    span.style.visibility = 'hidden';
-                });
-            }
-        });
-    </script>
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>
