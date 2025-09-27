@@ -109,7 +109,7 @@
             <div class="card">
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label for="cliente">Cliente</label>
                             <select id="cliente" class="form-control" required>
                                 <option value="">Seleccionar cliente</option>
@@ -118,13 +118,20 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label for="fecha_inicio">Fecha Inicio</label>
                             <input type="datetime-local" id="fecha_inicio" class="form-control" required>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label for="fecha_fin">Fecha Fin</label>
                             <input type="datetime-local" id="fecha_fin" class="form-control" required>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check mt-4">
+                                <input type="checkbox" id="ine_entregada" class="form-check-input">
+                                <label for="ine_entregada" class="form-check-label">INE entregada</label>
+                                <small class="form-text text-muted">Sin INE se agrega 10% al total</small>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -204,10 +211,33 @@ let carrito = [];
 let prendaSeleccionada = null;
 let varianteSeleccionada = null;
 let cantidadSeleccionada = 1;
+let variantesActuales = [];
+let stockVirtual = {}; // Almacena el stock virtual de cada variante
+
+function prendaTieneStock(prendaId) {
+    return true; // Siempre mostrar prendas, la validación real se hace en el modal
+}
+
+function actualizarVisibilidadPrendas() {
+    document.querySelectorAll('.product-card').forEach(card => {
+        const onclick = card.getAttribute('onclick');
+        if (onclick) {
+            const prendaId = onclick.match(/\d+/)[0];
+            if (!prendaTieneStock(parseInt(prendaId))) {
+                card.style.display = 'none';
+            } else {
+                card.style.display = 'block';
+            }
+        }
+    });
+}
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', function() {
     actualizarCarrito();
+    
+    // Actualizar carrito cuando cambie el checkbox de INE
+    document.getElementById('ine_entregada').addEventListener('change', actualizarCarrito);
 });
 
 function mostrarVariantes(prendaId) {
@@ -228,6 +258,14 @@ function mostrarVariantes(prendaId) {
 }
 
 function mostrarModalVariantes(prenda, variantes) {
+    // Inicializar stock virtual si no existe
+    variantes.forEach(variante => {
+        if (!(variante.id in stockVirtual)) {
+            stockVirtual[variante.id] = variante.unidades_disponibles;
+        }
+    });
+    
+    variantesActuales = [...variantes];
     document.getElementById('modalTitle').textContent = prenda.nombre;
     
     let html = `
@@ -241,19 +279,34 @@ function mostrarModalVariantes(prenda, variantes) {
                 <h6>Selecciona una variante:</h6>
     `;
     
+    let variantesConStock = [];
+    
     variantes.forEach(variante => {
-        html += `
-            <div class="variant-option" onclick="seleccionarVariante(${variante.id}, '${variante.color}', '${variante.talla}', ${variante.unidades_disponibles}, event)">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <strong>${variante.color} - ${variante.talla}</strong>
-                        <br><small class="text-muted">${variante.unidades_disponibles} disponibles</small>
+        const stockDisponible = stockVirtual[variante.id];
+        
+        if (stockDisponible > 0) {
+            variantesConStock.push(variante);
+            html += `
+                <div class="variant-option" onclick="seleccionarVariante(${variante.id}, '${variante.color}', '${variante.talla}', ${stockDisponible}, event)">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>${variante.color} - ${variante.talla}</strong>
+                            <br><small class="text-muted">${stockDisponible} disponibles</small>
+                        </div>
+                        ${variante.imagen ? `<img src="${variante.imagen}" width="50" height="50" class="rounded">` : ''}
                     </div>
-                    ${variante.imagen ? `<img src="${variante.imagen}" width="50" height="50" class="rounded">` : ''}
                 </div>
+            `;
+        }
+    });
+    
+    if (variantesConStock.length === 0) {
+        html += `
+            <div class="alert alert-warning text-center">
+                <i class="fas fa-exclamation-triangle"></i> No hay stock disponible para esta prenda
             </div>
         `;
-    });
+    }
     
     html += `
                 <div class="quantity-controls mt-3" id="quantityControls" style="display: none;">
@@ -315,6 +368,14 @@ function agregarAlCarrito() {
         return;
     }
     
+    // Verificar stock virtual disponible
+    if (stockVirtual[varianteSeleccionada.id] < cantidadSeleccionada) {
+        alert('No hay suficiente stock disponible');
+        return;
+    }
+    
+    const existingIndex = carrito.findIndex(i => i.variante_id === varianteSeleccionada.id);
+    
     const item = {
         prenda_id: prendaSeleccionada.id,
         variante_id: varianteSeleccionada.id,
@@ -326,20 +387,21 @@ function agregarAlCarrito() {
         imagen: prendaSeleccionada.imagen
     };
     
-    // Verificar si ya existe en el carrito
-    const existingIndex = carrito.findIndex(i => i.variante_id === item.variante_id);
-    
     if (existingIndex >= 0) {
         carrito[existingIndex].cantidad += item.cantidad;
     } else {
         carrito.push(item);
     }
     
+    // Reducir stock virtual
+    stockVirtual[varianteSeleccionada.id] -= cantidadSeleccionada;
+    
     actualizarCarrito();
+    actualizarVisibilidadPrendas();
+    
     const modal = bootstrap.Modal.getInstance(document.getElementById('variantesModal'));
     modal.hide();
     
-    // Reset
     varianteSeleccionada = null;
     cantidadSeleccionada = 1;
 }
@@ -389,14 +451,29 @@ function actualizarCarrito() {
         `;
     });
     
+    // Calcular total con posible recargo por INE
+    const ineEntregada = document.getElementById('ine_entregada')?.checked || false;
+    if (!ineEntregada) {
+        total = total * 1.10;
+        html += '<div class="text-center text-warning mt-2"><small>+10% sin INE</small></div>';
+    }
+    
     cartItems.innerHTML = html;
     cartTotal.textContent = total.toFixed(2);
 }
 
 function eliminarDelCarrito(index) {
+    const item = carrito[index];
+    
+    // Restaurar stock virtual
+    stockVirtual[item.variante_id] += item.cantidad;
+    
     carrito.splice(index, 1);
     actualizarCarrito();
+    actualizarVisibilidadPrendas();
 }
+
+
 
 function procesarRenta() {
     const cliente = document.getElementById('cliente').value;
@@ -431,12 +508,18 @@ function procesarRenta() {
     }
     
     // Datos de la renta
+    const ineEntregada = document.getElementById('ine_entregada').checked;
     const inputs = [
         {name: 'cliente', value: cliente},
         {name: 'fecha_inicio', value: fechaInicio},
         {name: 'fecha_fin', value: fechaFin},
         {name: 'prendas_data', value: JSON.stringify(carrito)}
     ];
+    
+    // Solo agregar ine_entregada si está marcado
+    if (ineEntregada) {
+        inputs.push({name: 'ine_entregada', value: 'on'});
+    }
     
     inputs.forEach(inputData => {
         const input = document.createElement('input');

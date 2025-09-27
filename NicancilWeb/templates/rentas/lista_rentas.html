@@ -10,7 +10,7 @@
 {% csrf_token %}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Rentas</h2>
+        <h2>Rentas <small class="text-muted">({{ rentas.count }} total{% if rentas.count != 1 %}es{% endif %})</small></h2>
         <div>
             <a href="{% url 'nueva_renta' %}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Nueva Renta
@@ -50,6 +50,7 @@
                                 <th>Fecha Inicio</th>
                                 <th>Fecha Fin</th>
                                 <th>Estado</th>
+                                <th>INE</th>
                                 <th>Total</th>
                                 <th>Acciones</th>
                             </tr>
@@ -74,6 +75,13 @@
                                         {{ renta.get_estado_display }}
                                     </span>
                                 </td>
+                                <td>
+                                    {% if renta.ine_entregada %}
+                                        <span class="badge bg-success">Sí</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">No (+10%)</span>
+                                    {% endif %}
+                                </td>
                                 <td>${{ renta.precio_total }}</td>
                                 <td>
                                     <button onclick="sincronizarRenta({{ renta.id }})" class="btn btn-sm btn-success" id="sync-btn-{{ renta.id }}">
@@ -86,7 +94,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="7" class="text-center">No hay rentas registradas</td>
+                                <td colspan="8" class="text-center">No hay rentas registradas</td>
                             </tr>
                             {% endfor %}
                         </tbody>

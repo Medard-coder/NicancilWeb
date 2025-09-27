@@ -26,6 +26,7 @@ urlpatterns = [
     path('', include('inventario.urls')),
     path('rentas/', include('rentas.urls')),
     path('citas/', include('citas.urls')),
+    path('reportes/', include('reportes.urls')),
     path('', RedirectView.as_view(url='/login/', permanent=False),),
 ]
 

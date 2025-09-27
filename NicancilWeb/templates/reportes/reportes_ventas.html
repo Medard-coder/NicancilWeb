@@ -1,0 +1,277 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}Reportes de Ventas{% endblock %}
+
+{% block extra_head %}
+<style>
+.stats-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+.stats-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+.stats-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+.filter-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+.table-responsive {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+.btn-download {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    border: none;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 25px;
+    font-weight: bold;
+    transition: all 0.3s;
+}
+.btn-download:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(238, 90, 36, 0.4);
+    color: white;
+}
+.section-title {
+    color: #2c3e50;
+    font-weight: bold;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 3px solid #3498db;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="section-title">Reportes de Ventas</h2>
+        <a href="{% url 'lista_rentas' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver a Rentas
+        </a>
+    </div>
+
+    <!-- Filtros de fecha -->
+    <div class="filter-card">
+        <form method="GET" class="row align-items-end">
+            <div class="col-md-4">
+                <label for="fecha_inicio" class="form-label">Fecha Inicio</label>
+                <input type="date" id="fecha_inicio" name="fecha_inicio" 
+                       class="form-control" value="{{ fecha_inicio|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-4">
+                <label for="fecha_fin" class="form-label">Fecha Fin</label>
+                <input type="date" id="fecha_fin" name="fecha_fin" 
+                       class="form-control" value="{{ fecha_fin|date:'Y-m-d' }}">
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-filter"></i> Filtrar
+                </button>
+                <button type="button" class="btn-download" onclick="descargarPDF()">
+                    <i class="fas fa-file-pdf"></i> Descargar PDF
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Estadísticas generales -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="stats-card text-center">
+                <div class="stats-number">{{ estadisticas.total_rentas }}</div>
+                <div class="stats-label">Total Rentas</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card text-center">
+                <div class="stats-number">${{ estadisticas.ingresos_totales|floatformat:2 }}</div>
+                <div class="stats-label">Ingresos Totales</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stats-card text-center">
+                <div class="stats-number">{{ estadisticas.prendas_nuevas }}</div>
+                <div class="stats-label">Prendas Nuevas</div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="stats-card text-center">
+                <div class="stats-number">{{ estadisticas.rentas_activas }}</div>
+                <div class="stats-label">Rentas Activas</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card text-center">
+                <div class="stats-number">{{ estadisticas.rentas_finalizadas }}</div>
+                <div class="stats-label">Rentas Finalizadas</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detalle de rentas -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-list"></i> Detalle de Rentas</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Cliente</th>
+                                    <th>Fecha</th>
+                                    <th>Estado</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for renta in rentas %}
+                                <tr>
+                                    <td><strong>#{{ renta.id }}</strong></td>
+                                    <td>{{ renta.cliente.nombre }}</td>
+                                    <td>{{ renta.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        {% if renta.estado == 'activa' %}
+                                            <span class="badge bg-success">{{ renta.get_estado_display }}</span>
+                                        {% elif renta.estado == 'finalizada' %}
+                                            <span class="badge bg-secondary">{{ renta.get_estado_display }}</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">{{ renta.get_estado_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><strong>${{ renta.precio_total|floatformat:2 }}</strong></td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        <i class="fas fa-info-circle"></i> No hay rentas en el período seleccionado
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prendas nuevas agregadas -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-plus-circle"></i> Prendas Nuevas</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Prenda</th>
+                                    <th>Precio</th>
+                                    <th>Fecha</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prenda in prendas_nuevas %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if prenda.imagen %}
+                                                <img src="{{ prenda.imagen.url }}" 
+                                                     class="rounded me-2" 
+                                                     style="width: 30px; height: 30px; object-fit: cover;">
+                                            {% endif %}
+                                            <div>
+                                                <div class="fw-bold">{{ prenda.nombre|truncatechars:15 }}</div>
+                                                <small class="text-muted">{{ prenda.get_tipo_display }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td><strong>${{ prenda.precio|floatformat:2 }}</strong></td>
+                                    <td><small>{{ prenda.fecha_creacion|date:"d/m" }}</small></td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-3">
+                                        <i class="fas fa-info-circle"></i> No hay prendas nuevas
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function descargarPDF() {
+    const fechaInicio = document.getElementById('fecha_inicio').value;
+    const fechaFin = document.getElementById('fecha_fin').value;
+    
+    if (!fechaInicio || !fechaFin) {
+        alert('Por favor selecciona ambas fechas para generar el reporte');
+        return;
+    }
+    
+    // Crear URL para descargar PDF
+    const url = `{% url 'generar_reporte_pdf' %}?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
+    
+    // Mostrar indicador de carga
+    const btnDownload = document.querySelector('.btn-download');
+    const originalText = btnDownload.innerHTML;
+    btnDownload.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando...';
+    btnDownload.disabled = true;
+    
+    // Crear enlace temporal para descarga
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `reporte_ventas_${fechaInicio}_${fechaFin}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Restaurar botón después de un momento
+    setTimeout(() => {
+        btnDownload.innerHTML = originalText;
+        btnDownload.disabled = false;
+    }, 2000);
+}
+
+// Auto-submit form cuando cambien las fechas
+document.getElementById('fecha_inicio').addEventListener('change', function() {
+    if (document.getElementById('fecha_fin').value) {
+        document.querySelector('form').submit();
+    }
+});
+
+document.getElementById('fecha_fin').addEventListener('change', function() {
+    if (document.getElementById('fecha_inicio').value) {
+        document.querySelector('form').submit();
+    }
+});
+</script>
+{% endblock %}

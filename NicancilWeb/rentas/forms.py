@@ -4,11 +4,12 @@ from .models import Renta, Cliente
 class RentaForm(forms.ModelForm):
     class Meta:
         model = Renta
-        fields = ['cliente', 'fecha_inicio', 'fecha_fin']
+        fields = ['cliente', 'fecha_inicio', 'fecha_fin', 'ine_entregada']
         widgets = {
             'fecha_inicio': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
             'fecha_fin': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
             'cliente': forms.Select(attrs={'class': 'form-select'}),
+            'ine_entregada': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
 class ClienteForm(forms.ModelForm):

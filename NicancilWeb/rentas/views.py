@@ -12,6 +12,7 @@ from datetime import datetime
 def lista_rentas(request):
     """Vista para listar todas las rentas"""
     from django.utils import timezone
+    from django.http import HttpResponse
     
     # Actualizar rentas vencidas automáticamente
     rentas_vencidas = Renta.objects.filter(
@@ -36,10 +37,17 @@ def lista_rentas(request):
             'textColor': '#fff'
         })
     
-    return render(request, 'rentas/lista_rentas.html', {
+    response = render(request, 'rentas/lista_rentas.html', {
         'rentas': rentas,
         'eventos_calendario': json.dumps(eventos_calendario)
     })
+    
+    # Evitar cache del navegador
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    
+    return response
 
 def lista_clientes(request):
     """Vista para listar todos los clientes y manejar nuevo cliente"""
@@ -78,6 +86,7 @@ def nueva_renta(request):
         fecha_inicio = request.POST.get('fecha_inicio')
         fecha_fin = request.POST.get('fecha_fin')
         prendas_data = request.POST.get('prendas_data')
+        ine_entregada = request.POST.get('ine_entregada') == 'on'
         
         if cliente_id and fecha_inicio and fecha_fin and prendas_data:
             try:
@@ -89,6 +98,7 @@ def nueva_renta(request):
                     cliente=cliente,
                     fecha_inicio=datetime.fromisoformat(fecha_inicio),
                     fecha_fin=datetime.fromisoformat(fecha_fin),
+                    ine_entregada=ine_entregada,
                     precio_total=0
                 )
                 

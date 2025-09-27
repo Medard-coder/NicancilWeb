@@ -33,6 +33,7 @@ class Renta(models.Model):
     fecha_fin = models.DateTimeField()
     precio_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     estado = models.CharField(max_length=20, choices=ESTADOS, default='activa')
+    ine_entregada = models.BooleanField(default=False, null=True, blank=True, verbose_name='INE entregada')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     
     class Meta:
@@ -51,7 +52,11 @@ class Renta(models.Model):
             raise ValidationError(f'Las siguientes prendas no están disponibles: {", ".join(nombres)}')
     
     def calcular_precio_total(self):
+        from decimal import Decimal
         total = sum(prenda.variante.prenda.precio for prenda in self.prendas.all())
+        # Agregar 10% si no se entregó INE
+        if not self.ine_entregada:
+            total = total * Decimal('1.10')
         self.precio_total = total
         return total
     
@@ -77,9 +82,16 @@ def cambiar_estatus_prendas(sender, instance, action, pk_set, **kwargs):
         if prendas_no_disponibles.exists():
             nombres = [str(p) for p in prendas_no_disponibles]
             raise ValidationError(f'Las siguientes prendas no están disponibles: {", ".join(nombres)}')
-    elif action == 'post_add' and instance.estado == 'activa':
-        # Cambiar prendas a 'en_uso' cuando se agregan a una renta activa
-        PrendaUnidad.objects.filter(pk__in=pk_set).update(estatus='en_uso')
+    elif action == 'post_add':
+        if instance.estado == 'activa':
+            # Cambiar prendas a 'en_uso' cuando se agregan a una renta activa
+            PrendaUnidad.objects.filter(pk__in=pk_set).update(estatus='en_uso')
+        # Recalcular precio total después de agregar prendas
+        instance.calcular_precio_total()
+        instance.save()
     elif action == 'post_remove':
         # Cambiar prendas a 'disponible' cuando se quitan de una renta
         PrendaUnidad.objects.filter(pk__in=pk_set).update(estatus='disponible')
+        # Recalcular precio total después de quitar prendas
+        instance.calcular_precio_total()
+        instance.save()

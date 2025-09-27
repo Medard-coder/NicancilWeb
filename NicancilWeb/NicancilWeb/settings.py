@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'inventario',
     'rentas',
     'citas',
+    'reportes',
 ]
 
 AUTH_USER_MODEL = 'usuarios.Usuario'
