@@ -32,6 +32,8 @@ class Renta(models.Model):
     fecha_inicio = models.DateTimeField()
     fecha_fin = models.DateTimeField()
     precio_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    anticipo = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='Anticipo pagado')
+    cargo_retraso = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='Cargo por retraso')
     estado = models.CharField(max_length=20, choices=ESTADOS, default='activa')
     ine_entregada = models.BooleanField(default=False, null=True, blank=True, verbose_name='INE entregada')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
@@ -57,8 +59,21 @@ class Renta(models.Model):
         # Agregar 10% si no se entregó INE
         if not self.ine_entregada:
             total = total * Decimal('1.10')
+        # Agregar cargo por retraso
+        total += self.cargo_retraso
         self.precio_total = total
         return total
+    
+    def calcular_cargo_retraso(self):
+        from django.utils import timezone
+        from decimal import Decimal
+        
+        if self.estado == 'pendiente_devolucion' and timezone.now().date() > self.fecha_fin.date():
+            dias_retraso = (timezone.now().date() - self.fecha_fin.date()).days
+            self.cargo_retraso = Decimal('150.00') * dias_retraso
+            self.calcular_precio_total()
+            self.save()
+        return self.cargo_retraso
     
     def finalizar_renta(self):
         self.estado = 'finalizada'

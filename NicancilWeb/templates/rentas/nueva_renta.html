@@ -3,94 +3,8 @@
 {% block title %}Nueva Renta{% endblock %}
 
 {% block extra_head %}
-<style>
-.product-card {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    transition: transform 0.2s, box-shadow 0.2s;
-    cursor: pointer;
-    height: 100%;
-}
-.product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-.product-image {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-    border-radius: 8px 8px 0 0;
-}
-.cart-sidebar {
-    position: fixed;
-    right: 20px;
-    bottom: 20px;
-    width: 350px;
-    max-height: 500px;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    z-index: 1000;
-    overflow: hidden;
-}
-.cart-header {
-    background: #007bff;
-    color: white;
-    padding: 15px;
-    font-weight: bold;
-}
-.cart-body {
-    max-height: 300px;
-    overflow-y: auto;
-    padding: 10px;
-}
-.cart-item {
-    border-bottom: 1px solid #eee;
-    padding: 10px 0;
-}
-.cart-footer {
-    padding: 15px;
-    border-top: 1px solid #eee;
-    background: #f8f9fa;
-}
-.modal-variantes .variant-option {
-    border: 2px solid #ddd;
-    border-radius: 8px;
-    padding: 15px;
-    margin: 10px 0;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.modal-variantes .variant-option:hover {
-    border-color: #007bff;
-}
-.modal-variantes .variant-option.selected {
-    border-color: #007bff;
-    background-color: #e3f2fd;
-}
-.quantity-controls {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 10px;
-}
-.quantity-btn {
-    width: 30px;
-    height: 30px;
-    border: 1px solid #ddd;
-    background: white;
-    border-radius: 4px;
-    cursor: pointer;
-}
-.quantity-input {
-    width: 60px;
-    text-align: center;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 5px;
-}
-</style>
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/nueva_renta.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -199,6 +113,66 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary" onclick="agregarAlCarrito()">Agregar al Carrito</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación de renta -->
+<div class="modal fade" id="confirmacionRentaModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Confirmar Renta</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Datos del Cliente</h6>
+                        <p><strong>Cliente:</strong> <span id="confirmCliente"></span></p>
+                        <p><strong>Fecha Inicio:</strong> <span id="confirmFechaInicio"></span></p>
+                        <p><strong>Fecha Fin:</strong> <span id="confirmFechaFin"></span></p>
+                        <p><strong>INE Entregada:</strong> <span id="confirmINE"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Prendas Seleccionadas</h6>
+                        <div id="confirmPrendas" class="confirm-prendas-list"></div>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="anticipo" class="form-label"><strong>Anticipo del Cliente</strong></label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="anticipo" placeholder="0.00" step="0.01" min="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="totalEditable" class="form-label"><strong>Total de la Renta</strong></label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="totalEditable" step="0.01" min="0">
+                            </div>
+                            <small class="text-muted">Total calculado: $<span id="totalCalculado"></span></small>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <strong>Pendiente por pagar:</strong> $<span id="pendientePagar">0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="confirmarRenta()">Rentar</button>
             </div>
         </div>
     </div>
@@ -490,6 +464,64 @@ function procesarRenta() {
         return;
     }
     
+    mostrarConfirmacionRenta();
+}
+
+function mostrarConfirmacionRenta() {
+    const clienteSelect = document.getElementById('cliente');
+    const clienteNombre = clienteSelect.options[clienteSelect.selectedIndex].text;
+    const fechaInicio = document.getElementById('fecha_inicio').value;
+    const fechaFin = document.getElementById('fecha_fin').value;
+    const ineEntregada = document.getElementById('ine_entregada').checked;
+    
+    // Llenar datos del modal
+    document.getElementById('confirmCliente').textContent = clienteNombre;
+    document.getElementById('confirmFechaInicio').textContent = new Date(fechaInicio).toLocaleString();
+    document.getElementById('confirmFechaFin').textContent = new Date(fechaFin).toLocaleString();
+    document.getElementById('confirmINE').textContent = ineEntregada ? 'Sí' : 'No';
+    
+    // Mostrar prendas
+    let prendasHtml = '';
+    carrito.forEach(item => {
+        prendasHtml += `
+            <div class="confirm-prenda-item">
+                <small><strong>${item.nombre}</strong> (${item.color} - ${item.talla}) x${item.cantidad} = $${(item.precio * item.cantidad).toFixed(2)}</small>
+            </div>
+        `;
+    });
+    document.getElementById('confirmPrendas').innerHTML = prendasHtml;
+    
+    // Calcular total
+    let total = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+    if (!ineEntregada) {
+        total = total * 1.10;
+    }
+    
+    document.getElementById('totalCalculado').textContent = total.toFixed(2);
+    document.getElementById('totalEditable').value = total.toFixed(2);
+    document.getElementById('anticipo').value = '';
+    
+    // Configurar eventos
+    document.getElementById('anticipo').addEventListener('input', calcularPendiente);
+    document.getElementById('totalEditable').addEventListener('input', calcularPendiente);
+    
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('confirmacionRentaModal'));
+    modal.show();
+}
+
+function calcularPendiente() {
+    const anticipo = parseFloat(document.getElementById('anticipo').value) || 0;
+    const total = parseFloat(document.getElementById('totalEditable').value) || 0;
+    const pendiente = total - anticipo;
+    
+    document.getElementById('pendientePagar').textContent = pendiente.toFixed(2);
+}
+
+function confirmarRenta() {
+    const anticipo = parseFloat(document.getElementById('anticipo').value) || 0;
+    const totalFinal = parseFloat(document.getElementById('totalEditable').value) || 0;
+    
     // Crear formulario y enviarlo
     const form = document.createElement('form');
     form.method = 'POST';
@@ -510,10 +542,12 @@ function procesarRenta() {
     // Datos de la renta
     const ineEntregada = document.getElementById('ine_entregada').checked;
     const inputs = [
-        {name: 'cliente', value: cliente},
-        {name: 'fecha_inicio', value: fechaInicio},
-        {name: 'fecha_fin', value: fechaFin},
-        {name: 'prendas_data', value: JSON.stringify(carrito)}
+        {name: 'cliente', value: document.getElementById('cliente').value},
+        {name: 'fecha_inicio', value: document.getElementById('fecha_inicio').value},
+        {name: 'fecha_fin', value: document.getElementById('fecha_fin').value},
+        {name: 'prendas_data', value: JSON.stringify(carrito)},
+        {name: 'anticipo', value: anticipo},
+        {name: 'total_final', value: totalFinal}
     ];
     
     // Solo agregar ine_entregada si está marcado

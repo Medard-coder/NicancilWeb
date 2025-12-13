@@ -52,6 +52,7 @@
                                 <th>Estado</th>
                                 <th>INE</th>
                                 <th>Total</th>
+                                <th>Cargo Retraso</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -84,6 +85,13 @@
                                 </td>
                                 <td>${{ renta.precio_total }}</td>
                                 <td>
+                                    {% if renta.cargo_retraso > 0 %}
+                                        <span class="badge bg-danger">${{ renta.cargo_retraso }}</span>
+                                    {% else %}
+                                        <span class="text-muted">$0.00</span>
+                                    {% endif %}
+                                </td>
+                                <td>
                                     <button onclick="sincronizarRenta({{ renta.id }})" class="btn btn-sm btn-success" id="sync-btn-{{ renta.id }}">
                                         <i class="bi bi-cloud-arrow-up"></i> Sync Google
                                     </button>
@@ -94,7 +102,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="8" class="text-center">No hay rentas registradas</td>
+                                <td colspan="9" class="text-center">No hay rentas registradas</td>
                             </tr>
                             {% endfor %}
                         </tbody>

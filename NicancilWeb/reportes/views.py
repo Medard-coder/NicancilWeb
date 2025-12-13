@@ -3,9 +3,23 @@ from django.http import HttpResponse, JsonResponse
 from django.db.models import Sum
 from django.utils import timezone
 from datetime import datetime, timedelta
+from django.contrib.auth.decorators import login_required
 from rentas.models import Renta, Cliente
 from inventario.models import Prenda
 
+# Importaciones para PDF
+try:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
+    from reportlab.lib.units import inch
+    import io
+    REPORTLAB_AVAILABLE = True
+except ImportError:
+    REPORTLAB_AVAILABLE = False
+
+@login_required
 def reportes_ventas(request):
     """Vista principal para generar reportes de ventas"""
     # Obtener fechas por defecto (último mes)
@@ -42,17 +56,15 @@ def reportes_ventas(request):
         'fecha_fin': fecha_fin,
         'estadisticas': estadisticas,
         'rentas': rentas_periodo.order_by('-fecha_creacion'),
-        'prendas_nuevas': prendas_nuevas.order_by('-fecha_creacion')
+        'prendas_nuevas': prendas_nuevas.order_by('-fecha_creacion'),
+        'usuario_reporte': request.user
     })
 
+@login_required
 def generar_reporte_pdf(request):
     """Generar reporte de ventas en PDF"""
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib import colors
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-    from reportlab.lib.units import inch
-    import io
+    if not REPORTLAB_AVAILABLE:
+        return JsonResponse({'error': 'ReportLab no está instalado'}, status=500)
     
     # Obtener parámetros de fecha
     fecha_inicio_str = request.GET.get('fecha_inicio')
@@ -82,6 +94,26 @@ def generar_reporte_pdf(request):
     # Título
     title = Paragraph(f"Reporte de Ventas<br/>Del {fecha_inicio.strftime('%d/%m/%Y')} al {fecha_fin.strftime('%d/%m/%Y')}", title_style)
     elements.append(title)
+    elements.append(Spacer(1, 12))
+    
+    # Información del usuario que genera el reporte
+    usuario_info = ParagraphStyle(
+        'UsuarioInfo',
+        parent=styles['Normal'],
+        fontSize=9,
+        alignment=2,  # Alineado a la derecha
+        textColor=colors.grey
+    )
+    
+    usuario_nombre = request.user.get_full_name() or request.user.username
+    fecha_generacion = timezone.now().strftime('%d/%m/%Y %H:%M')
+    
+    usuario_text = Paragraph(f"Generado por: <b>{usuario_nombre}</b><br/>Fecha de generación: {fecha_generacion}", usuario_info)
+    elements.append(usuario_text)
+    elements.append(Spacer(1, 12))
+    
+    # Línea separadora
+    elements.append(HRFlowable(width="100%", thickness=1, lineCap='round', color=colors.lightgrey))
     elements.append(Spacer(1, 20))
     
     # Obtener datos
@@ -178,6 +210,27 @@ def generar_reporte_pdf(request):
         ]))
         
         elements.append(prendas_table)
+    
+    # Pie de página con información del usuario
+    elements.append(Spacer(1, 30))
+    elements.append(HRFlowable(width="100%", thickness=1, lineCap='round', color=colors.lightgrey))
+    elements.append(Spacer(1, 10))
+    
+    pie_pagina = ParagraphStyle(
+        'PiePagina',
+        parent=styles['Normal'],
+        fontSize=8,
+        alignment=1,  # Centrado
+        textColor=colors.grey
+    )
+    
+    usuario_rol = request.user.get_rol_display() if hasattr(request.user, 'get_rol_display') else 'Usuario'
+    pie_text = Paragraph(
+        f"Reporte generado por: <b>{usuario_nombre}</b> ({usuario_rol})<br/>"
+        f"Sistema de Gestión Nicancil - {fecha_generacion}",
+        pie_pagina
+    )
+    elements.append(pie_text)
     
     # Generar PDF
     doc.build(elements)

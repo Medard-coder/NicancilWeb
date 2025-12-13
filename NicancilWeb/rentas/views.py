@@ -21,6 +21,11 @@ def lista_rentas(request):
     )
     rentas_vencidas.update(estado='pendiente_devolucion')
     
+    # Calcular cargos por retraso para rentas pendientes
+    rentas_pendientes = Renta.objects.filter(estado='pendiente_devolucion')
+    for renta in rentas_pendientes:
+        renta.calcular_cargo_retraso()
+    
     rentas = Renta.objects.all().order_by('-fecha_creacion')
     
     # Obtener rentas activas y pendientes para el calendario
@@ -87,6 +92,8 @@ def nueva_renta(request):
         fecha_fin = request.POST.get('fecha_fin')
         prendas_data = request.POST.get('prendas_data')
         ine_entregada = request.POST.get('ine_entregada') == 'on'
+        anticipo = float(request.POST.get('anticipo', 0))
+        total_final = float(request.POST.get('total_final', 0))
         
         if cliente_id and fecha_inicio and fecha_fin and prendas_data:
             try:
@@ -99,7 +106,8 @@ def nueva_renta(request):
                     fecha_inicio=datetime.fromisoformat(fecha_inicio),
                     fecha_fin=datetime.fromisoformat(fecha_fin),
                     ine_entregada=ine_entregada,
-                    precio_total=0
+                    precio_total=total_final,
+                    anticipo=anticipo
                 )
                 
                 # Agregar prendas seleccionadas
@@ -112,7 +120,7 @@ def nueva_renta(request):
                     prendas_unidades.extend(unidades)
                 
                 renta.prendas.set(prendas_unidades)
-                renta.calcular_precio_total()
+                # No recalcular precio ya que viene del modal
                 renta.save()
                 
                 # Sincronizar con Google Calendar
