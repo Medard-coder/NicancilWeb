@@ -35,6 +35,67 @@
         </div>
     </div>
     
+    <!-- Barra de filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" action="">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <input type="text" name="busqueda" class="form-control" placeholder="Buscar por cliente..." value="{{ request.GET.busqueda|default:'' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <select name="estado" class="form-select">
+                            <option value="">Todos los estados</option>
+                            <option value="activa" {% if request.GET.estado == 'activa' %}selected{% endif %}>Activa</option>
+                            <option value="pendiente_devolucion" {% if request.GET.estado == 'pendiente_devolucion' %}selected{% endif %}>Pendiente Devolución</option>
+                            <option value="finalizada" {% if request.GET.estado == 'finalizada' %}selected{% endif %}>Finalizada</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select name="ine" class="form-select">
+                            <option value="">INE</option>
+                            <option value="si" {% if request.GET.ine == 'si' %}selected{% endif %}>Con INE</option>
+                            <option value="no" {% if request.GET.ine == 'no' %}selected{% endif %}>Sin INE</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <input type="date" name="fecha_inicio" class="form-control" placeholder="Fecha inicio" value="{{ request.GET.fecha_inicio|default:'' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="date" name="fecha_fin" class="form-control" placeholder="Fecha fin" value="{{ request.GET.fecha_fin|default:'' }}">
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-2">
+                        <select name="con_retraso" class="form-select">
+                            <option value="">Cargo retraso</option>
+                            <option value="si" {% if request.GET.con_retraso == 'si' %}selected{% endif %}>Con cargo</option>
+                            <option value="no" {% if request.GET.con_retraso == 'no' %}selected{% endif %}>Sin cargo</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" name="total_min" class="form-control" placeholder="Total mín" value="{{ request.GET.total_min|default:'' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" name="total_max" class="form-control" placeholder="Total máx" value="{{ request.GET.total_max|default:'' }}">
+                        </div>
+                    </div>
+                    <div class="col-md-2 ms-auto">
+                        <a href="{% url 'lista_rentas' %}" class="btn btn-outline-secondary w-100">Limpiar filtros</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <div class="row">
         <div class="col-12">
             <div class="card">
@@ -92,6 +153,11 @@
                                     {% endif %}
                                 </td>
                                 <td>
+                                    {% if renta.estado == 'activa' or renta.estado == 'pendiente_devolucion' %}
+                                        <button onclick="mostrarExtenderRenta({{ renta.id }}, '{{ renta.cliente.nombre }}', '{{ renta.fecha_fin|date:'Y-m-d' }}')" class="btn btn-sm btn-warning">
+                                            <i class="bi bi-calendar-plus"></i> Extender
+                                        </button>
+                                    {% endif %}
                                     <button onclick="sincronizarRenta({{ renta.id }})" class="btn btn-sm btn-success" id="sync-btn-{{ renta.id }}">
                                         <i class="bi bi-cloud-arrow-up"></i> Sync Google
                                     </button>
@@ -108,6 +174,40 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para extender renta -->
+<div class="modal fade" id="extenderRentaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">Extender Renta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <p><strong>Cliente:</strong> <span id="extenderCliente"></span></p>
+                    <p><strong>Fecha fin actual:</strong> <span id="extenderFechaActual"></span></p>
+                </div>
+                <div class="mb-3">
+                    <label for="nuevaFechaFin" class="form-label"><strong>Nueva fecha de fin</strong></label>
+                    <input type="datetime-local" class="form-control" id="nuevaFechaFin" required>
+                </div>
+                <div class="mb-3">
+                    <div class="alert alert-info" id="costoExtension" style="display: none;">
+                        <strong>Costo adicional:</strong> $<span id="costoAdicional">0.00</span>
+                    </div>
+                </div>
+                <div id="alertaConflicto" class="alert alert-danger" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i> Las prendas no están disponibles en las nuevas fechas
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning" id="btnConfirmarExtension" onclick="confirmarExtension()">Extender Renta</button>
             </div>
         </div>
     </div>
@@ -237,6 +337,102 @@ function finalizarRenta(rentaId) {
     })
     .catch(error => {
         alert('❌ Error de conexión: No se pudo finalizar la renta');
+    });
+}
+
+// Variables para extensión de renta
+let rentaExtenderId = null;
+
+// Función para mostrar modal de extensión
+function mostrarExtenderRenta(rentaId, clienteNombre, fechaFinActual) {
+    rentaExtenderId = rentaId;
+    document.getElementById('extenderCliente').textContent = clienteNombre;
+    document.getElementById('extenderFechaActual').textContent = new Date(fechaFinActual).toLocaleString();
+    
+    // Establecer fecha mínima como la fecha actual
+    const ahora = new Date();
+    const fechaMinima = ahora.toISOString().slice(0, 16);
+    document.getElementById('nuevaFechaFin').min = fechaMinima;
+    document.getElementById('nuevaFechaFin').value = '';
+    
+    // Ocultar alertas
+    document.getElementById('costoExtension').style.display = 'none';
+    document.getElementById('alertaConflicto').style.display = 'none';
+    document.getElementById('btnConfirmarExtension').disabled = false;
+    
+    // Agregar evento para calcular costo cuando cambie la fecha
+    document.getElementById('nuevaFechaFin').addEventListener('change', validarExtension);
+    
+    const modal = new bootstrap.Modal(document.getElementById('extenderRentaModal'));
+    modal.show();
+}
+
+// Función para validar extensión y calcular costo
+function validarExtension() {
+    const nuevaFecha = document.getElementById('nuevaFechaFin').value;
+    if (!nuevaFecha) return;
+    
+    fetch(`/rentas/api/renta/${rentaExtenderId}/validar-extension/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            nueva_fecha_fin: nuevaFecha
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Mostrar costo adicional
+            document.getElementById('costoAdicional').textContent = data.costo_adicional.toFixed(2);
+            document.getElementById('costoExtension').style.display = 'block';
+            document.getElementById('alertaConflicto').style.display = 'none';
+            document.getElementById('btnConfirmarExtension').disabled = false;
+        } else {
+            // Mostrar alerta de conflicto
+            document.getElementById('alertaConflicto').style.display = 'block';
+            document.getElementById('costoExtension').style.display = 'none';
+            document.getElementById('btnConfirmarExtension').disabled = true;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al validar la extensión');
+    });
+}
+
+// Función para confirmar extensión
+function confirmarExtension() {
+    const nuevaFecha = document.getElementById('nuevaFechaFin').value;
+    if (!nuevaFecha) {
+        alert('Por favor selecciona una nueva fecha');
+        return;
+    }
+    
+    fetch(`/rentas/api/renta/${rentaExtenderId}/extender/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            nueva_fecha_fin: nuevaFecha
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ Renta extendida exitosamente');
+            window.location.reload();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('❌ Error de conexión al extender la renta');
     });
 }
 </script>

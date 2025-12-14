@@ -13,6 +13,7 @@ def lista_rentas(request):
     """Vista para listar todas las rentas"""
     from django.utils import timezone
     from django.http import HttpResponse
+    from django.utils.html import escape
     
     # Actualizar rentas vencidas automáticamente
     rentas_vencidas = Renta.objects.filter(
@@ -26,7 +27,52 @@ def lista_rentas(request):
     for renta in rentas_pendientes:
         renta.calcular_cargo_retraso()
     
-    rentas = Renta.objects.all().order_by('-fecha_creacion')
+    rentas = Renta.objects.all()
+    
+    # Aplicar filtros
+    busqueda = escape(request.GET.get('busqueda', '').strip())
+    if busqueda:
+        rentas = rentas.filter(cliente__nombre__icontains=busqueda)
+    
+    estado = request.GET.get('estado', '').strip()
+    if estado:
+        rentas = rentas.filter(estado=estado)
+    
+    ine = request.GET.get('ine', '').strip()
+    if ine == 'si':
+        rentas = rentas.filter(ine_entregada=True)
+    elif ine == 'no':
+        rentas = rentas.filter(ine_entregada=False)
+    
+    fecha_inicio = request.GET.get('fecha_inicio', '').strip()
+    if fecha_inicio:
+        rentas = rentas.filter(fecha_inicio__date__gte=fecha_inicio)
+    
+    fecha_fin = request.GET.get('fecha_fin', '').strip()
+    if fecha_fin:
+        rentas = rentas.filter(fecha_fin__date__lte=fecha_fin)
+    
+    con_retraso = request.GET.get('con_retraso', '').strip()
+    if con_retraso == 'si':
+        rentas = rentas.filter(cargo_retraso__gt=0)
+    elif con_retraso == 'no':
+        rentas = rentas.filter(cargo_retraso=0)
+    
+    total_min = request.GET.get('total_min', '').strip()
+    if total_min:
+        try:
+            rentas = rentas.filter(precio_total__gte=float(total_min))
+        except ValueError:
+            pass
+    
+    total_max = request.GET.get('total_max', '').strip()
+    if total_max:
+        try:
+            rentas = rentas.filter(precio_total__lte=float(total_max))
+        except ValueError:
+            pass
+    
+    rentas = rentas.order_by('-fecha_creacion')
     
     # Obtener rentas activas y pendientes para el calendario
     rentas_calendario = Renta.objects.filter(estado__in=['activa', 'pendiente_devolucion'])
@@ -307,6 +353,134 @@ def eliminar_cliente(request, pk):
             return JsonResponse({
                 'success': False,
                 'message': f'Error al eliminar cliente: {str(e)}'
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Método no permitido'})
+
+@csrf_exempt
+def validar_extension_renta(request, renta_id):
+    """Validar si se puede extender una renta y calcular costo adicional"""
+    if request.method == 'POST':
+        try:
+            renta = get_object_or_404(Renta, id=renta_id)
+            data = json.loads(request.body)
+            nueva_fecha_fin = datetime.fromisoformat(data['nueva_fecha_fin'])
+            
+            # Verificar que la nueva fecha sea posterior a la actual
+            if nueva_fecha_fin <= renta.fecha_fin:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'La nueva fecha debe ser posterior a la fecha actual'
+                })
+            
+            # Verificar disponibilidad de prendas en el nuevo período
+            conflictos = Renta.objects.filter(
+                prendas__in=renta.prendas.all(),
+                estado__in=['activa', 'pendiente_devolucion'],
+                fecha_inicio__lt=nueva_fecha_fin,
+                fecha_fin__gt=renta.fecha_fin
+            ).exclude(id=renta.id).exists()
+            
+            if conflictos:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Las prendas no están disponibles en las nuevas fechas'
+                })
+            
+            # Calcular costo adicional (días extra * precio base por día)
+            dias_extra = (nueva_fecha_fin.date() - renta.fecha_fin.date()).days
+            precio_base = sum(prenda.variante.prenda.precio for prenda in renta.prendas.all())
+            if not renta.ine_entregada:
+                precio_base = precio_base * 1.10
+            
+            # Calcular precio por día (asumiendo que el precio original es por el período completo)
+            dias_originales = (renta.fecha_fin.date() - renta.fecha_inicio.date()).days or 1
+            precio_por_dia = precio_base / dias_originales
+            costo_adicional = precio_por_dia * dias_extra
+            
+            return JsonResponse({
+                'success': True,
+                'costo_adicional': float(costo_adicional),
+                'dias_extra': dias_extra
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Error al validar extensión: {str(e)}'
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Método no permitido'})
+
+@csrf_exempt
+def extender_renta(request, renta_id):
+    """Extender una renta cambiando la fecha de fin y recalculando costos"""
+    if request.method == 'POST':
+        try:
+            renta = get_object_or_404(Renta, id=renta_id)
+            data = json.loads(request.body)
+            nueva_fecha_fin = datetime.fromisoformat(data['nueva_fecha_fin'])
+            
+            # Validar nuevamente antes de extender
+            if nueva_fecha_fin <= renta.fecha_fin:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'La nueva fecha debe ser posterior a la fecha actual'
+                })
+            
+            # Verificar disponibilidad
+            conflictos = Renta.objects.filter(
+                prendas__in=renta.prendas.all(),
+                estado__in=['activa', 'pendiente_devolucion'],
+                fecha_inicio__lt=nueva_fecha_fin,
+                fecha_fin__gt=renta.fecha_fin
+            ).exclude(id=renta.id).exists()
+            
+            if conflictos:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Las prendas no están disponibles en las nuevas fechas'
+                })
+            
+            # Calcular nuevo precio total
+            dias_extra = (nueva_fecha_fin.date() - renta.fecha_fin.date()).days
+            precio_base = sum(prenda.variante.prenda.precio for prenda in renta.prendas.all())
+            if not renta.ine_entregada:
+                precio_base = precio_base * 1.10
+            
+            dias_originales = (renta.fecha_fin.date() - renta.fecha_inicio.date()).days or 1
+            precio_por_dia = precio_base / dias_originales
+            costo_adicional = precio_por_dia * dias_extra
+            
+            # Actualizar renta
+            renta.fecha_fin = nueva_fecha_fin
+            renta.precio_total += costo_adicional
+            
+            # Si estaba en pendiente_devolucion, cambiar a activa
+            if renta.estado == 'pendiente_devolucion':
+                renta.estado = 'activa'
+                renta.cargo_retraso = 0  # Limpiar cargo por retraso
+            
+            renta.save()
+            
+            # Sincronizar con Google Calendar
+            try:
+                from .google_calendar import GoogleCalendarService
+                calendar_service = GoogleCalendarService()
+                calendar_service.actualizar_evento_renta(renta)
+            except Exception as e:
+                pass  # Continuar aunque falle Google Calendar
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Renta extendida hasta {nueva_fecha_fin.strftime("%d/%m/%Y %H:%M")}',
+                'nuevo_total': float(renta.precio_total)
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Error al extender renta: {str(e)}'
             })
     
     return JsonResponse({'success': False, 'message': 'Método no permitido'})
