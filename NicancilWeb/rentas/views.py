@@ -1,3 +1,4 @@
+from django.views.decorators.csrf import csrf_protect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404, render, redirect
@@ -217,7 +218,7 @@ def sincronizar_google_calendar(request, renta_id):
             'message': f'Error al sincronizar: {str(e)}'
         })
 
-@csrf_exempt
+@csrf_protect
 def calendario_prenda(request, prenda_id):
     """API para obtener fechas ocupadas de una prenda específica"""
     prenda = get_object_or_404(PrendaUnidad, id=prenda_id)
@@ -240,7 +241,7 @@ def calendario_prenda(request, prenda_id):
     
     return JsonResponse(eventos, safe=False)
 
-@csrf_exempt
+@csrf_protect
 def disponibilidad_prenda(request, prenda_id):
     """Verificar disponibilidad de prenda en fechas específicas"""
     if request.method == 'POST':
@@ -260,7 +261,7 @@ def disponibilidad_prenda(request, prenda_id):
             'mensaje': 'Disponible' if not conflictos else 'No disponible en esas fechas'
         })
 
-@csrf_exempt
+@csrf_protect
 def finalizar_renta_api(request, renta_id):
     """API para finalizar/eliminar renta completamente"""
     if request.method == 'POST':
@@ -357,7 +358,7 @@ def eliminar_cliente(request, pk):
     
     return JsonResponse({'success': False, 'message': 'Método no permitido'})
 
-@csrf_exempt
+@csrf_protect
 def validar_extension_renta(request, renta_id):
     """Validar si se puede extender una renta y calcular costo adicional"""
     if request.method == 'POST':
@@ -412,7 +413,7 @@ def validar_extension_renta(request, renta_id):
     
     return JsonResponse({'success': False, 'message': 'Método no permitido'})
 
-@csrf_exempt
+@csrf_protect
 def extender_renta(request, renta_id):
     """Extender una renta cambiando la fecha de fin y recalculando costos"""
     if request.method == 'POST':

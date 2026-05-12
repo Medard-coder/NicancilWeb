@@ -2,3 +2,13 @@ venv/
 env/
 
 google_credentials_calendar.json
+
+# Logs
+logs/*.log
+
+# Environment variables
+.env
+
+# Database
+*.sqlite3
+db.sqlite3
